@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوابة تقييم بورتيدج للتعليم المبكر | Portage Early Education Assessment System</title>
+  
+  <!-- Google Fonts: Cairo & Tajawal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="navbar-inner">
+        <div class="brand-wrapper">
+          <div class="brand-icon">
+            <i class="fas fa-child-reaching"></i>
+          </div>
+          <div class="brand-text">
+            <h1>بوابة مقياس بورتيدج للتعليم المبكر</h1>
+            <p>معتمد من مؤسسة أكاديمية التدريب والتنمية (FTDA) - إعداد: م. إيمان أبواليزيد</p>
+          </div>
+        </div>
+
+        <div class="nav-actions">
+          <!-- Child Profile Switcher -->
+          <div class="child-profile-select-wrapper">
+            <i class="fas fa-user-circle" style="color:var(--primary); font-size:1.1rem;"></i>
+            <select id="activeChildSelect" class="form-select child-quick-select" title="اختر ملف الطفل للمتابعة">
+              <!-- Populated by JS -->
+            </select>
+            <button class="btn btn-primary btn-xs" id="btnAddNewChildModal" title="إضافة ملف طفل جديد">
+              <i class="fas fa-plus"></i> طفل جديد
+            </button>
+          </div>
+
+          <button class="btn btn-secondary btn-xs" id="btnLoadDemoData" title="تحميل نموذج تجريبي">
+            <i class="fas fa-magic"></i> بيانات تجريبية
+          </button>
+          <button class="btn btn-secondary btn-xs" id="btnImportJson" title="استيراد ملف تقييم">
+            <i class="fas fa-file-import"></i> استيراد
+          </button>
+          <input type="file" id="importFileInput" accept=".json" style="display:none">
+          <button class="btn btn-secondary btn-xs" id="btnExportJson" title="تصدير ملف تقييم">
+            <i class="fas fa-file-export"></i> تصدير JSON
+          </button>
+          <button class="btn btn-primary btn-xs" id="btnPrintReport">
+            <i class="fas fa-print"></i> طباعة التقرير
+          </button>
+          <button class="btn btn-outline btn-xs" id="themeToggleBtn">
+            <i class="fas fa-moon"></i> الوضع
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Wrapper -->
+    <main class="main-wrapper">
+      
+      <!-- Hero Banner -->
+      <section class="app-hero">
+        <div class="hero-glow"></div>
+        <div class="hero-content">
+          <h2>نظام إدارة ملفات الأطفال والتقييم النمائي الشامل (Portage)</h2>
+          <p>منصة متكاملة لمتابعة تطور حالة كل طفل عبر جلسات التقييم المتتابعة، مع دليل ونماذج وشرح مفصل لكل بند لضمان دقة التقييم واستخراج الخطط الفردية (IEP).</p>
+          <div class="hero-badges">
+            <span class="badge badge-ftda"><i class="fas fa-certificate"></i> اعتماد FTDA</span>
+            <span class="badge badge-info"><i class="fas fa-question-circle"></i> وسيلة مساعدة ونماذج لكل سؤال</span>
+            <span class="badge badge-success"><i class="fas fa-chart-line"></i> متابعة التطور النمائي عبر الزمن</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tabs Navigation -->
+      <nav class="tabs-navigation">
+        <button class="tab-btn active" data-tab="intake">
+          <i class="fas fa-id-card"></i> 1. ملف الطفل والجلسة
+        </button>
+        <button class="tab-btn" data-tab="assessment">
+          <i class="fas fa-tasks"></i> 2. تقييم المهارات ودليل البنود
+        </button>
+        <button class="tab-btn" data-tab="results">
+          <i class="fas fa-chart-pie"></i> 3. العمر التطوري والنتائج
+        </button>
+        <button class="tab-btn" data-tab="history">
+          <i class="fas fa-history"></i> 4. سجل المتابعة والمنحنى النمائي
+        </button>
+        <button class="tab-btn" data-tab="iep">
+          <i class="fas fa-graduation-cap"></i> 5. الخطة الفردية (IEP)
+        </button>
+        <button class="tab-btn" data-tab="report">
+          <i class="fas fa-file-signature"></i> 6. التقرير الرسمي الشامل
+        </button>
+      </nav>
+
+      <!-- Tab 1: Child Intake Form -->
+      <section class="tab-view active" id="tab-intake">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-user-edit text-primary"></i>
+              <h3>البيانات الأولية للطفل وتاريخ التقييم</h3>
+            </div>
+            <span class="badge badge-info">خطوة أساسية لحساب العمر الزمني</span>
+          </div>
+
+          <form id="childIntakeForm" onsubmit="event.preventDefault(); switchTab('assessment');">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="childName">
+                  اسم الطفل الرباعي <span class="req">*</span>
+                </label>
+                <input type="text" id="childName" class="form-input" placeholder="مثال: يوسف أحمد السعيد" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="childDob">
+                  تاريخ الميلاد <span class="req">*</span>
+                </label>
+                <input type="date" id="childDob" class="form-input" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="evalDate">
+                  تاريخ التقييم <span class="req">*</span>
+                </label>
+                <input type="date" id="evalDate" class="form-input" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="childGender">الجنس</label>
+                <select id="childGender" class="form-select">
+                  <option value="male">ذكر</option>
+                  <option value="female">أنثى</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="specialistName">اسم الأخصائي / الفاحص</label>
+                <input type="text" id="specialistName" class="form-input" placeholder="مثال: أخصائي التربية الخاصة">
+              </div>
+
+              <div class="form-group full-width">
+                <label class="form-label" for="evalNotes">ملاحظات وسلوك الطفل أثناء التقييم</label>
+                <textarea id="evalNotes" class="form-textarea" rows="3" placeholder="اكتب أي ملاحظات تتعلق باستجابة الطفل، مستوى التركيز، التعاون، البيئة المحيطة..."></textarea>
+              </div>
+            </div>
+
+            <!-- Calculated Age Chip -->
+            <div id="chronologicalAgeChip" class="age-summary-chip">
+              <i class="fas fa-info-circle"></i> أدخل تاريخ الميلاد وتاريخ التقييم لحساب العمر الزمني بدقة.
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-primary">
+                الانتقال لتقييم مهارات البورتيدج <i class="fas fa-arrow-left"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Tab 2: Skills Assessment Matrix -->
+      <section class="tab-view" id="tab-assessment">
+        <!-- Domain Selector Cards -->
+        <div class="domain-selector" id="domainButtonsContainer">
+          <!-- Populated by JavaScript -->
+        </div>
+
+        <!-- Assessment Work Area -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h3 id="currentDomainTitle">تقييم المهارات</h3>
+            </div>
+            <div class="quick-actions">
+              <button type="button" class="btn btn-xs btn-success" id="btnMarkAllAcquired">
+                <i class="fas fa-check-double"></i> تحديد الفئة كمكتسبة (+)
+              </button>
+              <button type="button" class="btn btn-xs btn-secondary" id="btnMarkAllMissing">
+                <i class="fas fa-times"></i> تحديد الفئة كغير مكتسبة (-)
+              </button>
+              <button type="button" class="btn btn-xs btn-outline" id="btnResetDomain">
+                <i class="fas fa-undo"></i> مسح التحديد
+              </button>
+            </div>
+          </div>
+
+          <!-- Toolbar with Age Filter and Search -->
+          <div class="assessment-toolbar">
+            <div class="age-filter-chips" id="ageFilterChipsContainer">
+              <!-- Age Filter Chips -->
+            </div>
+            <div style="min-width: 220px;">
+              <input type="text" id="searchSkillInput" class="form-input" placeholder="بحث في بنود هذا المجال..." style="padding:0.4rem 0.75rem; font-size:0.85rem;">
+            </div>
+          </div>
+
+          <!-- Accordions of Skills -->
+          <div id="skillsAccordionContainer">
+            <!-- Populated by JavaScript -->
+          </div>
+
+          <!-- Bottom Navigation inside Assessment -->
+          <div style="display:flex; justify-content:space-between; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-color);">
+            <button type="button" class="btn btn-secondary" onclick="switchTab('intake')">
+              <i class="fas fa-arrow-right"></i> تعديل بيانات الطفل
+            </button>
+            <button type="button" class="btn btn-primary" onclick="switchTab('results')">
+              عرض النتائج والعمر التطوري <i class="fas fa-arrow-left"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 3: Calculations & Results Dashboard -->
+      <section class="tab-view" id="tab-results">
+        <!-- Summary Stat Cards -->
+        <div class="results-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: var(--primary-gradient)">
+              <i class="fas fa-brain"></i>
+            </div>
+            <div class="stat-content">
+              <h4>متوسط العمر التطوري النمائي</h4>
+              <div class="stat-value" id="statOverallDevAge">0 شهر</div>
+              <div class="stat-sub" id="statOverallDevAgeSub">يعادل: 0 سنة</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background: var(--secondary-gradient)">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-content">
+              <h4>نسبة التطور الإجمالية (DQ)</h4>
+              <div class="stat-value" id="statOverallDQ">100%</div>
+              <div class="stat-sub">(العمر التطوري ÷ العمر الزمني) × 100</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%)">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+              <h4>إجمالي المهارات المكتسبة</h4>
+              <div class="stat-value" id="statTotalAcquired">0 / 0</div>
+              <div class="stat-sub">من إجمالي بنود مقياس البورتيدج</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fas fa-chart-radar text-primary"></i>
+                <h3>الملف النمائي الراداري (مقارنة المجالات)</h3>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="radarChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fas fa-chart-bar text-primary"></i>
+                <h3>مقارنة العمر التطوري مقابل العمر الزمني لكل مجال</h3>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="barChartCanvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Breakdown Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-table text-primary"></i>
+              <h3>جدول تفصيل الأعمار النمائية وفق معادلات البورتيدج المعتمدة</h3>
+            </div>
+            <span class="calc-formula-badge">المعادلة: (المكتسب ÷ المقام) × 12 = الشهور لكل سنة</span>
+          </div>
+
+          <div class="calc-table-container">
+            <table class="calc-table">
+              <thead>
+                <tr>
+                  <th>المجال النمائي</th>
+                  <th>العمر التطوري (شهور)</th>
+                  <th>العمر الزمني (شهور)</th>
+                  <th>المهارات المكتسبة</th>
+                  <th>نسبة التطور (DQ)</th>
+                  <th>التشخيص النمائي والفجوة</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTableBody">
+                <!-- Populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 4: History & Progress Timeline -->
+      <section class="tab-view" id="tab-history">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-history text-primary"></i>
+              <h3>سجل جلسات التقييم ومتابعة المنحنى النمائي للطفل</h3>
+            </div>
+            <button class="btn btn-primary btn-xs" id="btnSaveCurrentSession">
+              <i class="fas fa-save"></i> حفظ الجلسة الحالية في سجل الطفل
+            </button>
+          </div>
+
+          <div style="margin-bottom:1.5rem;">
+            <p style="color:var(--text-muted); font-size:0.95rem;">
+              يمكنك حفظ ومتابعة جلسات التقييم الدورية (التقييم القبلي، المرحلي، والبعدي) لمشاهدة تطور ونمو الطفل ومعدل اكتساب المهارات بمرور الوقت.
+            </p>
+          </div>
+
+          <!-- Progress Timeline Chart -->
+          <div class="card" style="background:var(--bg-elevated); margin-bottom:1.5rem;">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fas fa-chart-line text-primary"></i>
+                <h4>منحنى تطور العمر النمائي عبر الجلسات المتتابعة</h4>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="timelineChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Sessions History Table -->
+          <div class="calc-table-container">
+            <table class="calc-table">
+              <thead>
+                <tr>
+                  <th>رقم الجلسة</th>
+                  <th>تاريخ التقييم</th>
+                  <th>العمر الزمني</th>
+                  <th>العمر التطوري الإجمالي</th>
+                  <th>نسبة التطور (DQ)</th>
+                  <th>المهارات المكتسبة</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="sessionsHistoryTableBody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 5: Individualized Educational Plan (IEP) -->
+      <section class="tab-view" id="tab-iep">
+        <div class="iep-summary-banner">
+          <div>
+            <h3 style="font-size:1.15rem; font-weight:800; color:var(--primary); margin-bottom:0.25rem;">
+              <i class="fas fa-bullseye"></i> مصفوفة الأهداف والبرنامج التربوي الفردي (IEP)
+            </h3>
+            <p id="iepSummaryText" style="font-size:0.9rem; color:var(--text-main);">
+              جاري تحليل المهارات المفقودة واستخراج خطة التدخل...
+            </p>
+          </div>
+          <div>
+            <button class="btn btn-primary" onclick="switchTab('report')">
+              <i class="fas fa-print"></i> معاينة التقرير النهائي والخطة
+            </button>
+          </div>
+        </div>
+
+        <!-- Goals Cards Grid -->
+        <div class="iep-goals-grid" id="iepGoalsContainer">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Tab 6: Official Report (Printable Form) -->
+      <section class="tab-view" id="tab-report">
+        <div class="card" id="printableReportCard">
+          <!-- Official FTDA Header -->
+          <div class="official-report-header">
+            <div class="report-logo-text">
+              <h2>تقرير التقييم النمائي الشامل - مقياس بورتيدج</h2>
+              <p>معتمد من مؤسسة أكاديمية التدريب والتنمية (FTDA) - إعداد: م. إيمان أبواليزيد</p>
+            </div>
+            <div style="text-align:left;">
+              <span class="badge badge-ftda" style="font-size:0.9rem;">Portage Assessment Report</span>
+            </div>
+          </div>
+
+          <!-- Child Profile Summary Box -->
+          <div style="background:var(--bg-elevated); padding:1rem; border-radius:var(--radius-md); margin-bottom:1.5rem; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; font-size:0.9rem;">
+            <div><strong>اسم الطفل:</strong> <span id="reportChildName">—</span></div>
+            <div><strong>تاريخ الميلاد:</strong> <span id="reportChildDob">—</span></div>
+            <div><strong>العمر الزمني:</strong> <span id="reportChildAge">—</span></div>
+            <div><strong>تاريخ التقييم:</strong> <span id="reportEvalDate">—</span></div>
+            <div><strong>الأخصائي الفاحص:</strong> <span id="reportSpecialist">—</span></div>
+          </div>
+
+          <!-- Developmental Summary Section -->
+          <h3 style="margin-bottom:0.75rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">
+            <i class="fas fa-chart-pie text-primary"></i> أولاً: نتائج التقييم ومعدلات النمو
+          </h3>
+          <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+            تم حساب العمر التطوري لكل مجال بالشهور وفقاً لمعادلات مقياس بورتيدج المعتمدة (مجموع المهارات المكتسبة ÷ عدد مهارات الفئة) × 12.
+          </p>
+
+          <!-- Report table will be mirrored here upon print -->
+          <div id="reportSummaryTableContainer"></div>
+
+          <!-- Recommendations & IEP Section -->
+          <h3 style="margin-top:2rem; margin-bottom:0.75rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">
+            <i class="fas fa-tasks text-primary"></i> ثانياً: الخطة التدريبية والتوصيات العامة
+          </h3>
+          <div style="font-size:0.9rem; line-height:1.8;">
+            <ul style="padding-right:1.5rem; margin-bottom:1rem;">
+              <li>البدء الفوري بالمهارات التي ظهرت في طور البزوغ (±) والمهارات الأساسية في المراحل العمرية المبكرة لضمان التسلسل الهرمي للنمو.</li>
+              <li>التركيز على استراتيجيات التعزيز الإيجابي المتكرر والنمذجة والتجزئة خطوة بخطوة (Task Analysis).</li>
+              <li>إشراك الأسرة وتدريب ولي الأمر على تطبيق الأنشطة المنزلية في بيئة طبيعية ومحفزة.</li>
+            </ul>
+          </div>
+
+          <!-- Signatures Section -->
+          <div style="margin-top:3rem; display:flex; justify-content:space-between; padding:0 2rem; text-align:center;">
+            <div>
+              <p><strong>توقيع الأخصائي الفاحص</strong></p>
+              <br><br>
+              <p>.......................................</p>
+            </div>
+            <div>
+              <p><strong>اعتماد المشرف الفني</strong></p>
+              <br><br>
+              <p>.......................................</p>
+            </div>
+          </div>
+
+          <!-- Print Trigger Button -->
+          <div style="margin-top:2rem; text-align:center;" class="btn-no-print">
+            <button class="btn btn-primary btn-lg" onclick="window.print()">
+              <i class="fas fa-print"></i> طباعة هذا التقرير رسمياً (A4)
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Modal 1: Skill Guide & Help Modal (وسيلة مساعدة ونماذج لكل سؤال) -->
+    <div class="modal-backdrop" id="skillGuideModal">
+      <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <div class="brand-icon" style="width:36px; height:36px; font-size:1.1rem;">
+              <i class="fas fa-lightbulb"></i>
+            </div>
+            <div>
+              <h3 id="modalGuideDomainName" style="font-size:1.1rem;">دليل تقييم المهارة</h3>
+              <span id="modalGuideAgeLabel" class="badge badge-ftda" style="font-size:0.75rem;">الفئة العمرية</span>
+            </div>
+          </div>
+          <button class="btn btn-icon btn-outline" onclick="closeModal('skillGuideModal')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:1.25rem;">
+          <!-- Skill Title -->
+          <div style="background:var(--bg-elevated); padding:1rem; border-radius:var(--radius-md); border-right:4px solid var(--primary);">
+            <div style="font-size:0.8rem; color:var(--text-muted); font-weight:700;">نص البند النمائي:</div>
+            <h4 id="modalGuideSkillText" style="font-size:1.05rem; margin-top:0.25rem; line-height:1.5;"></h4>
+          </div>
+
+          <!-- Objective -->
+          <div>
+            <h5 style="font-size:0.95rem; color:var(--primary); margin-bottom:0.4rem;">
+              <i class="fas fa-bullseye"></i> الهدف من البند:
+            </h5>
+            <p id="modalGuideObjective" style="font-size:0.9rem; color:var(--text-main); line-height:1.6;"></p>
+          </div>
+
+          <!-- Administration Procedure -->
+          <div>
+            <h5 style="font-size:0.95rem; color:var(--primary); margin-bottom:0.4rem;">
+              <i class="fas fa-clipboard-list"></i> طريقة إجراء الاختبار والتطبيق:
+            </h5>
+            <p id="modalGuideProcedure" style="font-size:0.9rem; color:var(--text-main); line-height:1.6; background:var(--bg-elevated); padding:0.8rem; border-radius:var(--radius-md);"></p>
+          </div>
+
+          <!-- Criteria / Success Rubric -->
+          <div>
+            <h5 style="font-size:0.95rem; color:var(--primary); margin-bottom:0.5rem;">
+              <i class="fas fa-balance-scale"></i> معايير صحة التقييم والحكم على المهارة:
+            </h5>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.85rem;">
+              <div style="background:var(--success-bg); color:var(--text-main); padding:0.6rem 0.8rem; border-radius:var(--radius-sm); border-right:3px solid var(--success);">
+                <strong>مكتسب (+):</strong> <span id="modalGuideCritAcquired"></span>
+              </div>
+              <div style="background:var(--warning-bg); color:var(--text-main); padding:0.6rem 0.8rem; border-radius:var(--radius-sm); border-right:3px solid var(--warning);">
+                <strong>قيد التدريب / بزوغ (±):</strong> <span id="modalGuideCritEmerging"></span>
+              </div>
+              <div style="background:var(--danger-bg); color:var(--text-main); padding:0.6rem 0.8rem; border-radius:var(--radius-sm); border-right:3px solid var(--danger);">
+                <strong>غير مكتسب (-):</strong> <span id="modalGuideCritMissing"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real Examples -->
+          <div>
+            <h5 style="font-size:0.95rem; color:var(--primary); margin-bottom:0.4rem;">
+              <i class="fas fa-user-check"></i> نماذج واقعية للاستجابة:
+            </h5>
+            <ul id="modalGuideExamples" style="padding-right:1.25rem; font-size:0.85rem; line-height:1.6; color:var(--text-main);">
+            </ul>
+          </div>
+
+          <!-- Props & Tips -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; font-size:0.85rem;">
+            <div style="background:var(--bg-elevated); padding:0.75rem; border-radius:var(--radius-md);">
+              <strong><i class="fas fa-tools text-primary"></i> الأدوات المقترحة:</strong>
+              <p id="modalGuideMaterials" style="color:var(--text-muted); margin-top:0.25rem;"></p>
+            </div>
+            <div style="background:var(--bg-elevated); padding:0.75rem; border-radius:var(--radius-md);">
+              <strong><i class="fas fa-info-circle text-primary"></i> تنبيه للفاحص:</strong>
+              <p id="modalGuideTips" style="color:var(--text-muted); margin-top:0.25rem;"></p>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:1.5rem; text-align:left; border-top:1px solid var(--border-color); padding-top:1rem;">
+          <button class="btn btn-secondary" onclick="closeModal('skillGuideModal')">إغلاق الدليل</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 2: Create New Child Profile Modal -->
+    <div class="modal-backdrop" id="newChildModal">
+      <div class="modal-card" style="max-width:500px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1.25rem;">
+          <h3 style="font-size:1.15rem;"><i class="fas fa-user-plus text-primary"></i> إنشاء ملف طفل جديد</h3>
+          <button class="btn btn-icon btn-outline" onclick="closeModal('newChildModal')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="createNewChildForm" onsubmit="event.preventDefault(); handleCreateNewChildSubmit();">
+          <div style="display:flex; flex-direction:column; gap:1rem;">
+            <div class="form-group">
+              <label class="form-label" for="newChildNameInput">اسم الطفل <span class="req">*</span></label>
+              <input type="text" id="newChildNameInput" class="form-input" placeholder="مثال: سارة محمد خالد" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="newChildDobInput">تاريخ الميلاد <span class="req">*</span></label>
+              <input type="date" id="newChildDobInput" class="form-input" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="newChildGenderInput">الجنس</label>
+              <select id="newChildGenderInput" class="form-select">
+                <option value="male">ذكر</option>
+                <option value="female">أنثى</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="newChildSpecialistInput">الأخصائي الفاحص</label>
+              <input type="text" id="newChildSpecialistInput" class="form-input" placeholder="اسم الأخصائي المسئول">
+            </div>
+          </div>
+
+          <div style="margin-top:1.5rem; display:flex; justify-content:flex-end; gap:0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('newChildModal')">إلغاء</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> إنشاء الملف وبدء التقييم</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>بوابة مقياس بورتيدج للتعليم المبكر &copy; 2026 | معتمد من مؤسسة أكاديمية التدريب والتنمية (FTDA) - إعداد: م. إيمان أبواليزيد</p>
+    </footer>
+  </div>
+
+  <!-- Portage Dataset, Guide Engine and Application Logic -->
+  <script src="portageData.js"></script>
+  <script src="skillGuides.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
