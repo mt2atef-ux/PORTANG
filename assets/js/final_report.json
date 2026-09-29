@@ -1,0 +1,24 @@
+{
+  "module": "Final_Report",
+  "report_template": {
+    "child_information": {
+      "child_name": "",
+      "date_of_birth": "",
+      "gender": "",
+      "education_level": "",
+      "assessment_date": ""
+    },
+    "score_summary": {
+      "total_score_obtained": 0,
+      "maximum_possible_score": 0,
+      "percentage": 0,
+      "developmental_status": ""
+    },
+    "performance_breakdown": {
+      "strengths": [],
+      "emerging_skills": [],
+      "areas_needing_improvement": []
+    },
+    "recommendations_and_interventions": []
+  }
+}

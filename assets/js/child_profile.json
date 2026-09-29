@@ -1,0 +1,9 @@
+{
+  "module": "Child_Onboarding",
+  "data": {
+    "child_name": "",
+    "date_of_birth": "",
+    "gender": "",
+    "education_level": ""
+  }
+}

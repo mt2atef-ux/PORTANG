@@ -25,7 +25,8 @@ const AppState = {
   },
   
   currentDomainId: "social",
-  currentAgeFilter: "all",
+  currentAgeFilter: "auto_child_age", // default to child's age bracket
+  autoFilterByAge: true,
   
   // Map of skillKey -> status ('acquired', 'emerging', 'missing')
   // skillKey format: `${domainId}_${ageIndex}_${skillId}`
@@ -33,6 +34,16 @@ const AppState = {
   iepSelectedGoals: new Set(),
   theme: localStorage.getItem('portage_theme') || 'light'
 };
+
+function getChildAgeGroupIndex(chronologicalAgeMonths) {
+  if (chronologicalAgeMonths <= 0) return 0;
+  if (chronologicalAgeMonths < 12) return 0; // 0-1
+  if (chronologicalAgeMonths < 24) return 1; // 1-2
+  if (chronologicalAgeMonths < 36) return 2; // 2-3
+  if (chronologicalAgeMonths < 48) return 3; // 3-4
+  if (chronologicalAgeMonths < 60) return 4; // 4-5
+  return 5; // 5-6
+}
 
 let timelineChartInstance = null;
 let radarChartInstance = null;
@@ -299,9 +310,15 @@ function updateChronologicalAge() {
   AppState.child.chronologicalAgeMonths = parseFloat(totalExactMonths.toFixed(1));
   AppState.child.chronologicalAgeFormatted = `${years} سنة و ${months} شهر و ${days} يوم (${AppState.child.chronologicalAgeMonths} شهر)`;
 
+  // Automatically set active age filter to match child's chronological age
+  const childAgeGroupIdx = getChildAgeGroupIndex(AppState.child.chronologicalAgeMonths);
+  if (AppState.autoFilterByAge) {
+    AppState.currentAgeFilter = String(childAgeGroupIdx);
+  }
+
   const chip = document.getElementById('chronologicalAgeChip');
   if (chip) {
-    chip.innerHTML = `<i class="fas fa-birthday-cake"></i> العمر الزمني للطفل: <strong>${years} سنة، ${months} شهر، ${days} يوم</strong> (الإجمالي: ${AppState.child.chronologicalAgeMonths} شهر)`;
+    chip.innerHTML = `<i class="fas fa-birthday-cake"></i> العمر الزمني للطفل: <strong>${years} سنة، ${months} شهر، ${days} يوم</strong> (الإجمالي: ${AppState.child.chronologicalAgeMonths} شهر) — <span style="color:var(--primary); font-weight:800;"><i class="fas fa-filter"></i> الفئة العمرية المطابقة: الفئة ${childAgeGroupIdx + 1}</span>`;
   }
 }
 
@@ -340,7 +357,10 @@ function renderDomainButtons() {
 
 function selectDomain(domainId) {
   AppState.currentDomainId = domainId;
-  AppState.currentAgeFilter = "all";
+  if (AppState.autoFilterByAge) {
+    const childAgeGroupIdx = getChildAgeGroupIndex(AppState.child.chronologicalAgeMonths || 0);
+    AppState.currentAgeFilter = String(childAgeGroupIdx);
+  }
   renderDomainButtons();
   renderAssessmentView();
 }
@@ -350,35 +370,50 @@ function renderAssessmentView() {
   const domain = PORTAGE_DATA.domains.find(d => d.id === AppState.currentDomainId);
   if (!domain) return;
 
+  const childAgeGroupIdx = getChildAgeGroupIndex(AppState.child.chronologicalAgeMonths || 0);
+  const childMatchedGroup = domain.ageGroups[childAgeGroupIdx] || domain.ageGroups[0];
+
   // Set Domain Title
   const titleEl = document.getElementById('currentDomainTitle');
   if (titleEl) {
     titleEl.innerHTML = `<i class="fas fa-${domain.icon}" style="color:${domain.color}"></i> تقييم: ${domain.name}`;
   }
 
-  // Render Age Filter Chips
+  // Render Age Filter Chips with prominent Child Age Button
   const filterContainer = document.getElementById('ageFilterChipsContainer');
   if (filterContainer) {
+    const isChildAgeActive = AppState.currentAgeFilter === String(childAgeGroupIdx) && AppState.autoFilterByAge;
+
     let chipsHtml = `
+      <button class="filter-chip ${isChildAgeActive ? 'active' : ''}" 
+              style="${isChildAgeActive ? 'background:linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); font-weight:800;' : 'border-color:var(--primary); color:var(--primary);'}" 
+              onclick="filterByChildAgeOnly(${childAgeGroupIdx})" 
+              title="عرض بنود الفئة العمرية المطابقة لعمر الطفل فقط">
+        🎯 فئة عمر الطفل فقط (${childMatchedGroup.ageLabel})
+      </button>
       <button class="filter-chip ${AppState.currentAgeFilter === 'all' ? 'active' : ''}" onclick="filterByAgeGroup('all')">
-        الكل (${domain.ageGroups.reduce((acc, g) => acc + g.skills.length, 0)})
+        عرض جميع الفئات (0-6 سنوات)
       </button>
     `;
+
     domain.ageGroups.forEach((group, idx) => {
+      const isSelected = AppState.currentAgeFilter === String(idx) && !AppState.autoFilterByAge;
+      const isTargetAge = idx === childAgeGroupIdx;
       chipsHtml += `
-        <button class="filter-chip ${AppState.currentAgeFilter === String(idx) ? 'active' : ''}" onclick="filterByAgeGroup('${idx}')">
-          ${group.ageLabel} (${group.skills.length})
+        <button class="filter-chip ${isSelected ? 'active' : ''}" onclick="filterBySpecificAgeGroup('${idx}')">
+          ${group.ageLabel} ${isTargetAge ? '⭐' : ''} (${group.skills.length})
         </button>
       `;
     });
     filterContainer.innerHTML = chipsHtml;
   }
 
-  // Render Accordions for each Age Group
+  // Render Accordions for each Age Group (filtered to child's age group if active)
   const accordionContainer = document.getElementById('skillsAccordionContainer');
   if (!accordionContainer) return;
 
   accordionContainer.innerHTML = domain.ageGroups.map((group, groupIndex) => {
+    // If filtering by specific age, hide non-matching groups
     if (AppState.currentAgeFilter !== 'all' && AppState.currentAgeFilter !== String(groupIndex)) {
       return '';
     }
@@ -386,12 +421,15 @@ function renderAssessmentView() {
     const groupStats = getAgeGroupStats(domain.id, groupIndex, group.skills);
     const denominator = domain.denominators[groupIndex] || group.totalSkills;
     const devMonths = ((groupStats.acquired / denominator) * 12).toFixed(2);
+    const isChildAgeGroup = groupIndex === childAgeGroupIdx;
 
     return `
-      <div class="age-group-accordion open" id="accordion-${domain.id}-${groupIndex}">
+      <div class="age-group-accordion open" id="accordion-${domain.id}-${groupIndex}" style="${isChildAgeGroup ? 'border: 2px solid var(--primary); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);' : ''}">
         <div class="accordion-header" onclick="toggleAccordion('${domain.id}-${groupIndex}')">
           <div class="accordion-title-group">
-            <span class="badge" style="background:${domain.color}20; color:${domain.color}">الفئة ${groupIndex + 1}</span>
+            <span class="badge" style="background:${domain.color}20; color:${domain.color}">
+              ${isChildAgeGroup ? '🎯 فئة عمر الطفل المطابقة' : 'الفئة ' + (groupIndex + 1)}
+            </span>
             <span class="accordion-title">${group.ageLabel}</span>
             <span class="accordion-stats">المكتسب: ${groupStats.acquired} من ${group.totalSkills}</span>
           </div>
@@ -447,12 +485,20 @@ function renderAssessmentView() {
   }).join('');
 }
 
-function toggleAccordion(id) {
-  const el = document.getElementById(`accordion-${id}`);
-  if (el) el.classList.toggle('open');
+function filterByChildAgeOnly(ageIndex) {
+  AppState.autoFilterByAge = true;
+  AppState.currentAgeFilter = String(ageIndex);
+  renderAssessmentView();
+}
+
+function filterBySpecificAgeGroup(ageIndex) {
+  AppState.autoFilterByAge = false;
+  AppState.currentAgeFilter = String(ageIndex);
+  renderAssessmentView();
 }
 
 function filterByAgeGroup(filter) {
+  AppState.autoFilterByAge = false;
   AppState.currentAgeFilter = filter;
   renderAssessmentView();
 }

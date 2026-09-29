@@ -1,0 +1,21 @@
+{
+  "module": "Interaction_Rules",
+  "rules": {
+    "progressive_questioning": {
+      "mode": "one_by_one",
+      "description": "طرح الأسئلة في المرحلة 3 سؤالاً تلو الآخر والانتظار حتى إجابة المستخدم قبل الانتقال للسؤال التالي."
+    },
+    "help_tooltip_display": {
+      "mandatory": true,
+      "description": "إظهار وسيلة المساعدة help_tooltip بوضوح مع كل سؤال لشرح آلية اختبار المهارة."
+    },
+    "scoring_logic": {
+      "mode": "cumulative_background_scoring",
+      "description": "تسجيل النقاط واحتسابها تراكمياً في الخلفية لكل إجابة."
+    },
+    "reporting": {
+      "trigger": "after_all_questions_completed",
+      "description": "تجميع النقاط فور انتهاء الأسئلة وإصدار تقرير ختامي يوضح مستوى الطفل ونقاط القوة وجوانب التطوير."
+    }
+  }
+}

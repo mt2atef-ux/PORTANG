@@ -17,7 +17,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
 
@@ -164,7 +164,7 @@
               <i class="fas fa-info-circle"></i> أدخل تاريخ الميلاد وتاريخ التقييم لحساب العمر الزمني بدقة.
             </div>
 
-            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+            <div class="form-action-row">
               <button type="submit" class="btn btn-primary">
                 الانتقال لتقييم مهارات البورتيدج <i class="fas fa-arrow-left"></i>
               </button>
@@ -204,7 +204,7 @@
             <div class="age-filter-chips" id="ageFilterChipsContainer">
               <!-- Age Filter Chips -->
             </div>
-            <div style="min-width: 220px;">
+            <div class="search-input-wrapper">
               <input type="text" id="searchSkillInput" class="form-input" placeholder="بحث في بنود هذا المجال..." style="padding:0.4rem 0.75rem; font-size:0.85rem;">
             </div>
           </div>
@@ -215,7 +215,7 @@
           </div>
 
           <!-- Bottom Navigation inside Assessment -->
-          <div style="display:flex; justify-content:space-between; margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border-color);">
+          <div class="assessment-bottom-nav">
             <button type="button" class="btn btn-secondary" onclick="switchTab('intake')">
               <i class="fas fa-arrow-right"></i> تعديل بيانات الطفل
             </button>
@@ -414,7 +414,7 @@
           </div>
 
           <!-- Child Profile Summary Box -->
-          <div style="background:var(--bg-elevated); padding:1rem; border-radius:var(--radius-md); margin-bottom:1.5rem; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; font-size:0.9rem;">
+          <div class="report-profile-box">
             <div><strong>اسم الطفل:</strong> <span id="reportChildName">—</span></div>
             <div><strong>تاريخ الميلاد:</strong> <span id="reportChildDob">—</span></div>
             <div><strong>العمر الزمني:</strong> <span id="reportChildAge">—</span></div>
@@ -446,13 +446,13 @@
           </div>
 
           <!-- Signatures Section -->
-          <div style="margin-top:3rem; display:flex; justify-content:space-between; padding:0 2rem; text-align:center;">
-            <div>
+          <div class="report-signatures-grid">
+            <div class="sig-col">
               <p><strong>توقيع الأخصائي الفاحص</strong></p>
               <br><br>
               <p>.......................................</p>
             </div>
-            <div>
+            <div class="sig-col">
               <p><strong>اعتماد المشرف الفني</strong></p>
               <br><br>
               <p>.......................................</p>
@@ -539,7 +539,7 @@
           </div>
 
           <!-- Props & Tips -->
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; font-size:0.85rem;">
+          <div class="modal-tips-grid">
             <div style="background:var(--bg-elevated); padding:0.75rem; border-radius:var(--radius-md);">
               <strong><i class="fas fa-tools text-primary"></i> الأدوات المقترحة:</strong>
               <p id="modalGuideMaterials" style="color:var(--text-muted); margin-top:0.25rem;"></p>
@@ -551,7 +551,7 @@
           </div>
         </div>
 
-        <div style="margin-top:1.5rem; text-align:left; border-top:1px solid var(--border-color); padding-top:1rem;">
+        <div class="modal-footer-row">
           <button class="btn btn-secondary" onclick="closeModal('skillGuideModal')">إغلاق الدليل</button>
         </div>
       </div>
@@ -559,7 +559,7 @@
 
     <!-- Modal 2: Create New Child Profile Modal -->
     <div class="modal-backdrop" id="newChildModal">
-      <div class="modal-card" style="max-width:500px;">
+      <div class="modal-card modal-card-sm">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1.25rem;">
           <h3 style="font-size:1.15rem;"><i class="fas fa-user-plus text-primary"></i> إنشاء ملف طفل جديد</h3>
           <button class="btn btn-icon btn-outline" onclick="closeModal('newChildModal')">
@@ -593,7 +593,7 @@
             </div>
           </div>
 
-          <div style="margin-top:1.5rem; display:flex; justify-content:flex-end; gap:0.75rem;">
+          <div class="modal-actions-row">
             <button type="button" class="btn btn-secondary" onclick="closeModal('newChildModal')">إلغاء</button>
             <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> إنشاء الملف وبدء التقييم</button>
           </div>
@@ -608,9 +608,10 @@
   </div>
 
   <!-- Portage Dataset, Guide Engine and Application Logic -->
-  <script src="portageData.js"></script>
-  <script src="skillGuides.js"></script>
-  <script src="app.js"></script>
+  <script src="assets/js/portageData.js"></script>
+  <script src="assets/js/skillGuides.js"></script>
+  <script src="assets/js/questionHelpTool.js"></script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>
 

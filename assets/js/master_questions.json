@@ -1,0 +1,52 @@
+{
+  "module": "Assessment_Master_Index",
+  "version": "1.0.0",
+  "title": "الفهرس الرئيسي لبنك أسئلة القياس والتقييم التفاعلي",
+  "total_questions": 5,
+  "scoring_system": {
+    "max_score_per_question": 2,
+    "total_maximum_score": 10
+  },
+  "questions_catalog": [
+    {
+      "index": 1,
+      "question_id": "Q1_COG_01",
+      "category": "النمو المعرفي (الإدراك)",
+      "file_name": "q1_cognitive_matching.json",
+      "file_path": "assets/js/questions/q1_cognitive_matching.json",
+      "title": "مطابقة الأشكال والألوان الأساسية"
+    },
+    {
+      "index": 2,
+      "question_id": "Q2_LANG_02",
+      "category": "النمو اللغوي والتواصلي",
+      "file_name": "q2_language_naming.json",
+      "file_path": "assets/js/questions/q2_language_naming.json",
+      "title": "تسمية الأشياء والمجسمات المألوفة"
+    },
+    {
+      "index": 3,
+      "question_id": "Q3_SOC_03",
+      "category": "التنشئة الاجتماعية",
+      "file_name": "q3_social_interaction.json",
+      "file_path": "assets/js/questions/q3_social_interaction.json",
+      "title": "مشاركة اللعب وتبادل الأدوار"
+    },
+    {
+      "index": 4,
+      "question_id": "Q4_MOT_04",
+      "category": "النمو الحركي العام",
+      "file_name": "q4_motor_coordination.json",
+      "file_path": "assets/js/questions/q4_motor_coordination.json",
+      "title": "ركل الكرة والتوازن الحركي"
+    },
+    {
+      "index": 5,
+      "question_id": "Q5_SELF_05",
+      "category": "رعاية الذات (المساعدة الذاتية)",
+      "file_name": "q5_self_help_feeding.json",
+      "file_path": "assets/js/questions/q5_self_help_feeding.json",
+      "title": "تناول الطعام بالملعقة باستقلالية"
+    }
+  ]
+}
