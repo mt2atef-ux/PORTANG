@@ -274,28 +274,91 @@ function switchAuthModalRole(role) {
   if (role === 'specialist') {
     specBtn?.classList.add('active');
     parentBtn?.classList.remove('active');
-    if (specInputs) specInputs.style.display = 'block';
+    if (specInputs) specInputs.style.display = 'flex';
     if (parentInputs) parentInputs.style.display = 'none';
+    populateQuickSpecSelect();
   } else {
     parentBtn?.classList.add('active');
     specBtn?.classList.remove('active');
     if (specInputs) specInputs.style.display = 'none';
-    if (parentInputs) parentInputs.style.display = 'block';
-    populateParentAuthChildSelect();
+    if (parentInputs) parentInputs.style.display = 'flex';
+    populateQuickChildSelect();
   }
   resetAuthStep1();
 }
 
-function populateParentAuthChildSelect() {
+function populateQuickSpecSelect() {
+  const select = document.getElementById('authQuickSpecSelect');
+  if (!select) return;
+
+  const specialistsList = Object.values(AppState.specialists || {});
+  select.innerHTML = '<option value="">-- اختر حساب مسجل للتعبئة التلقائية --</option>' + specialistsList.map(s => `
+    <option value="${s.id}">
+      ${s.name} (${s.title || 'أخصائي'}) - ${s.phone || s.id}
+    </option>
+  `).join('');
+
+  // Default prefill with active specialist if available
+  const activeSpec = AppState.specialists[AppState.activeSpecialistId];
+  if (activeSpec && !document.getElementById('authSpecNameInput').value) {
+    handleQuickSpecSelectChange(activeSpec.id);
+  }
+}
+
+function handleQuickSpecSelectChange(specId) {
+  if (!specId) return;
+  const spec = AppState.specialists[specId];
+  if (!spec) return;
+
+  const nameInp = document.getElementById('authSpecNameInput');
+  const emailInp = document.getElementById('authSpecEmailInput');
+  const phoneInp = document.getElementById('authSpecPhoneInput');
+  const titleInp = document.getElementById('authSpecTitleInput');
+  const centerInp = document.getElementById('authSpecCenterInput');
+
+  if (nameInp) nameInp.value = spec.name || '';
+  if (emailInp) emailInp.value = spec.email || `${spec.id}@portage-portal.com`;
+  if (phoneInp) phoneInp.value = spec.phone || '01012345678';
+  if (titleInp) titleInp.value = spec.title || '';
+  if (centerInp) centerInp.value = spec.center || '';
+}
+
+function populateQuickChildSelect() {
   const select = document.getElementById('authParentSelectChild');
   if (!select) return;
 
   const childrenList = Object.values(AppState.children || {});
-  select.innerHTML = childrenList.map(c => `
-    <option value="${c.id}" ${c.id === AppState.activeChildId ? 'selected' : ''}>
+  select.innerHTML = '<option value="">-- اختر ملف طفل مسجل للتعبئة التلقائية --</option>' + childrenList.map(c => `
+    <option value="${c.id}">
       ${c.name} (${c.specialist || 'أخصائي بورتيدج'})
     </option>
   `).join('');
+
+  // Default prefill with active child
+  const activeChild = AppState.child;
+  if (activeChild && !document.getElementById('authParentChildNameInput').value) {
+    handleQuickChildSelectChange(activeChild.id);
+  }
+}
+
+function handleQuickChildSelectChange(childId) {
+  if (!childId) return;
+  const child = AppState.children[childId] || AppState.child;
+  if (!child) return;
+
+  const parentNameInp = document.getElementById('authParentNameInput');
+  const childNameInp = document.getElementById('authParentChildNameInput');
+  const emailInp = document.getElementById('authParentEmailInput');
+  const phoneInp = document.getElementById('authParentPhoneInput');
+  const dobInp = document.getElementById('authParentChildDobInput');
+  const genderInp = document.getElementById('authParentChildGenderInput');
+
+  if (parentNameInp && !parentNameInp.value) parentNameInp.value = `ولي أمر ${child.name}`;
+  if (childNameInp) childNameInp.value = child.name || '';
+  if (emailInp && !emailInp.value) emailInp.value = `parent_${child.id}@family.com`;
+  if (phoneInp && !phoneInp.value) phoneInp.value = '01198765432';
+  if (dobInp) dobInp.value = child.dob || '2023-01-01';
+  if (genderInp) genderInp.value = child.gender || 'male';
 }
 
 function resetAuthStep1() {
@@ -313,38 +376,68 @@ function resetAuthStep1() {
 function handleSendOtpRequest(isResend = false) {
   const role = AppState.authSession.role;
   let identifier = "";
+  let recipientLabel = "";
 
   if (role === 'specialist') {
-    identifier = document.getElementById('authIdentifierInput')?.value.trim();
-    if (!identifier && !isResend) {
-      alert("يرجى إدخال البريد الإلكتروني أو رقم الجوال للأخصائي");
-      return;
-    }
-    if (!identifier && isResend) identifier = AppState.authSession.identifier || "specialist@portage.org";
-  } else {
-    identifier = document.getElementById('authParentIdentifierInput')?.value.trim();
-    const selectedChildId = document.getElementById('authParentSelectChild')?.value;
-    AppState.authSession.childId = selectedChildId || AppState.activeChildId;
+    const name = document.getElementById('authSpecNameInput')?.value.trim();
+    const email = document.getElementById('authSpecEmailInput')?.value.trim();
+    const phone = document.getElementById('authSpecPhoneInput')?.value.trim();
+    const title = document.getElementById('authSpecTitleInput')?.value.trim() || "أخصائي تربية خاصة";
+    const center = document.getElementById('authSpecCenterInput')?.value.trim() || "مركز التنمية الشاملة";
 
-    if (!identifier && !selectedChildId && !isResend) {
-      alert("يرجى إدخال رقم الجوال أو البريد الإلكتروني لولي الأمر أو اختيار الطفل");
+    if (!name || (!email && !phone)) {
+      alert("يرجى إدخال اسم الأخصائي والبريد الإلكتروني أو رقم الجوال");
       return;
     }
-    if (!identifier) identifier = "01198765432 (رقم جوال ولي الأمر المسجل)";
+
+    identifier = email || phone;
+    recipientLabel = `${name} (${phone || email})`;
+
+    AppState.authSession.specialistData = {
+      name,
+      email,
+      phone,
+      title,
+      center
+    };
+  } else {
+    const parentName = document.getElementById('authParentNameInput')?.value.trim();
+    const childName = document.getElementById('authParentChildNameInput')?.value.trim();
+    const email = document.getElementById('authParentEmailInput')?.value.trim();
+    const phone = document.getElementById('authParentPhoneInput')?.value.trim();
+    const dob = document.getElementById('authParentChildDobInput')?.value;
+    const gender = document.getElementById('authParentChildGenderInput')?.value || "male";
+
+    if (!childName || (!email && !phone)) {
+      alert("يرجى إدخال اسم الطفل ورقم الجوال أو البريد لولي الأمر");
+      return;
+    }
+
+    identifier = phone || email;
+    recipientLabel = `${parentName || 'ولي الأمر'} - طفل: ${childName} (${phone || email})`;
+
+    AppState.authSession.parentData = {
+      parentName,
+      childName,
+      email,
+      phone,
+      dob: dob || "2023-01-01",
+      gender
+    };
   }
 
   // Generate 4-digit numeric OTP code
   const generatedCode = Math.floor(1000 + Math.random() * 9000).toString();
   AppState.authSession.generatedOtp = generatedCode;
   AppState.authSession.identifier = identifier;
-  AppState.authSession.targetRecipient = identifier;
+  AppState.authSession.targetRecipient = recipientLabel;
 
   // Show Step 2 Form
   document.getElementById('authIdentifierForm').style.display = 'none';
   document.getElementById('authOtpVerifyForm').style.display = 'block';
 
   const recipientDisplay = document.getElementById('authTargetRecipientDisplay');
-  if (recipientDisplay) recipientDisplay.textContent = identifier;
+  if (recipientDisplay) recipientDisplay.textContent = recipientLabel;
 
   const codeDisplay = document.getElementById('simulatedOtpCodeDisplay');
   if (codeDisplay) codeDisplay.textContent = generatedCode;
@@ -352,7 +445,7 @@ function handleSendOtpRequest(isResend = false) {
   const channelText = document.getElementById('simulatedOtpChannelText');
   const isEmail = identifier.includes('@');
   if (channelText) {
-    channelText.textContent = isEmail ? '📧 تم إرسال رسالة التحقق إلى بريدك الإلكتروني:' : '📱 تم إرسال رسالة SMS برمز التحقق إلى هاتفك:';
+    channelText.textContent = isEmail ? '📧 تم إرسال رسالة التحقق إلى البريد الإلكتروني:' : '📱 تم إرسال رسالة SMS برمز التحقق إلى الهاتف:';
   }
 
   // Start 60s countdown timer
@@ -396,12 +489,67 @@ function handleVerifyOtpSubmit() {
   closeModal('authModal');
 
   if (AppState.authSession.role === 'specialist') {
+    const sData = AppState.authSession.specialistData;
+    
+    // Find existing specialist or create new one
+    let targetSpecId = Object.keys(AppState.specialists).find(id => {
+      const s = AppState.specialists[id];
+      return (s.phone && s.phone === sData.phone) || (s.email && s.email === sData.email) || s.name === sData.name;
+    });
+
+    if (!targetSpecId) {
+      targetSpecId = "spec_" + Date.now();
+      AppState.specialists[targetSpecId] = {
+        id: targetSpecId,
+        name: sData.name,
+        title: sData.title,
+        center: sData.center,
+        phone: sData.phone,
+        email: sData.email,
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+      AppState.specialistStores[targetSpecId] = {};
+    }
+
+    switchActiveSpecialist(targetSpecId);
     switchToSpecialistMode();
-    alert(`مرحباً بك! تم التحقق بنجاح وتفعيل جلسة الأخصائي (${AppState.specialists[AppState.activeSpecialistId]?.name || 'الأخصائي'}).`);
+    renderSpecialistSelectDropdown();
+    renderSpecialistSummaryCard();
+    alert(`مرحباً بك! تم التحقق بنجاح وتفعيل جلسة الأخصائي (${AppState.specialists[targetSpecId]?.name}).`);
   } else {
-    const childId = AppState.authSession.childId || AppState.activeChildId;
-    switchToParentMode(childId);
-    alert(`مرحباً بكم في بوابة ولي الأمر لمتابعة الطفل: ${AppState.child.name}!`);
+    const pData = AppState.authSession.parentData;
+    
+    // Check if child already exists
+    let targetChildId = Object.keys(AppState.children || {}).find(cId => {
+      const c = AppState.children[cId];
+      return c.name && c.name.toLowerCase().trim() === pData.childName.toLowerCase().trim();
+    });
+
+    if (!targetChildId) {
+      targetChildId = "child_" + Date.now();
+      const spec = AppState.specialists[AppState.activeSpecialistId];
+      AppState.children[targetChildId] = {
+        id: targetChildId,
+        name: pData.childName,
+        dob: pData.dob,
+        evalDate: new Date().toISOString().split('T')[0],
+        gender: pData.gender,
+        specialist: spec?.name || "أخصائي بورتيدج",
+        notes: `مسجل بواسطة ولي الأمر (${pData.parentName || 'الأسرة'}) - جوال: ${pData.phone || ''}`,
+        chronologicalAgeMonths: 0,
+        chronologicalAgeFormatted: "",
+        sessions: [],
+        currentEvaluations: {},
+        currentIepGoals: []
+      };
+      AppState.specialistStores[AppState.activeSpecialistId] = { ...AppState.children };
+      saveState();
+    }
+
+    switchToParentMode(targetChildId);
+    renderChildSelectDropdown();
+    renderChildrenDirectoryTable();
+    alert(`مرحباً بكم في بوابة ولي الأمر لمتابعة الطفل: ${pData.childName}!`);
   }
 }
 

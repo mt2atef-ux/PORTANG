@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="120" height="120">
+  <!-- خلفية التلميح -->
+  <rect x="15" y="15" width="70" height="60" rx="12" fill="#F4ECF7"/>
+  <polygon points="50,90 40,75 60,75" fill="#F4ECF7"/>
+  <!-- المصباح -->
+  <circle cx="50" cy="40" r="14" fill="#9B59B6"/>
+  <path d="M44 55 H56 V62 H44 Z" fill="#8E44AD"/>
+  <rect x="46" y="63" width="8" height="4" rx="2" fill="#2C3E50"/>
+  <!-- إشعاع المصباح -->
+  <path d="M25 40 h6 M69 40 h6 M38 23 l4 4 M58 23 l-4 4" stroke="#9B59B6" stroke-width="4" stroke-linecap="round"/>
+</svg>

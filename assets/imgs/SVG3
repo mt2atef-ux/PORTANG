@@ -1,0 +1,10 @@
+<svg 
+xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="120" height="120">
+  <!-- فقاعة المحادثة/السؤال -->
+  <path d="M15 15 H85 A10 10 0 0 1 95 25 V65 A10 10 0 0 1 85 75 H65 L45 95 V75 H15 A10 10 0 0 1 5 65 V25 A10 10 0 0 1 15 15 Z" fill="#FEF9E7" stroke="#F39C12" stroke-width="4"/>
+  <!-- علامة الاستفهام -->
+  <text x="50" y="55" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#E67E22" text-anchor="middle">?</text>
+  <!-- الخيارات الوهمية أسفل الفقاعة -->
+  <circle cx="30" cy="85" r="6" fill="#2ECC71"/>
+  <rect x="42" y="82" width="30" height="6" rx="3" fill="#BDC3C7"/>
+</svg>

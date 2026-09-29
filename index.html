@@ -774,34 +774,116 @@
 
         <!-- Step 1: Identifier Input Form -->
         <form id="authIdentifierForm" onsubmit="event.preventDefault(); handleSendOtpRequest();">
-          <div style="display:flex; flex-direction:column; gap:1rem;">
-            <div id="authSpecialistInputs">
+          <div style="display:flex; flex-direction:column; gap:0.9rem;">
+            
+            <!-- Specialist Profile Form Fields -->
+            <div id="authSpecialistInputs" style="display:flex; flex-direction:column; gap:0.85rem;">
               <div class="form-group">
-                <label class="form-label" for="authIdentifierInput">
-                  <i class="fas fa-envelope"></i> البريد الإلكتروني أو رقم الجوال للأخصائي <span class="req">*</span>
+                <label class="form-label" for="authSpecNameInput">
+                  <i class="fas fa-user"></i> الاسم الكامل للأخصائي <span class="req">*</span>
                 </label>
-                <input type="text" id="authIdentifierInput" class="form-input" placeholder="مثال: mona@portage.org أو 01012345678" required>
+                <input type="text" id="authSpecNameInput" class="form-input" placeholder="مثال: أ. منى زكي" required>
               </div>
-            </div>
 
-            <div id="authParentInputs" style="display:none;">
-              <div class="form-group">
-                <label class="form-label" for="authParentIdentifierInput">
-                  <i class="fas fa-mobile-screen"></i> رقم الجوال أو البريد الإلكتروني لولي الأمر <span class="req">*</span>
-                </label>
-                <input type="text" id="authParentIdentifierInput" class="form-input" placeholder="مثال: 01198765432 أو parent@example.com">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                <div class="form-group">
+                  <label class="form-label" for="authSpecEmailInput">
+                    <i class="fas fa-envelope"></i> البريد الإلكتروني <span class="req">*</span>
+                  </label>
+                  <input type="email" id="authSpecEmailInput" class="form-input" placeholder="mona@portage.org" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="authSpecPhoneInput">
+                    <i class="fas fa-mobile-screen"></i> رقم الجوال <span class="req">*</span>
+                  </label>
+                  <input type="tel" id="authSpecPhoneInput" class="form-input" placeholder="01012345678" required>
+                </div>
               </div>
-              <div class="form-group" style="margin-top:0.5rem;">
-                <label class="form-label" for="authParentSelectChild">
-                  <i class="fas fa-child"></i> أو حدد ملف الطفل المسجل مباشرة:
-                </label>
-                <select id="authParentSelectChild" class="form-select">
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                <div class="form-group">
+                  <label class="form-label" for="authSpecTitleInput">
+                    <i class="fas fa-id-badge"></i> التخصص / المسمى الوظيفي
+                  </label>
+                  <input type="text" id="authSpecTitleInput" class="form-input" placeholder="أخصائي تربية خاصة">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="authSpecCenterInput">
+                    <i class="fas fa-hospital"></i> المركز / العيادة
+                  </label>
+                  <input type="text" id="authSpecCenterInput" class="form-input" placeholder="مركز التنمية الشاملة">
+                </div>
+              </div>
+
+              <!-- Quick Specialist Account Selector -->
+              <div style="background:var(--bg-elevated); padding:0.5rem 0.75rem; border-radius:var(--radius-md); border:1px solid var(--border-color); font-size:0.82rem;">
+                <span style="color:var(--text-muted);"><i class="fas fa-bolt"></i> تعبئة سريعة لحساب مسجل:</span>
+                <select id="authQuickSpecSelect" class="form-select" style="margin-top:0.3rem; font-size:0.85rem;" onchange="handleQuickSpecSelectChange(this.value)">
                   <!-- Populated by JS -->
                 </select>
               </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" id="btnSendOtpSubmit" style="width:100%; margin-top:0.5rem;">
+            <!-- Parent / Child Profile Form Fields -->
+            <div id="authParentInputs" style="display:none; flex-direction:column; gap:0.85rem;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                <div class="form-group">
+                  <label class="form-label" for="authParentNameInput">
+                    <i class="fas fa-user-tie"></i> اسم ولي الأمر (الأب / الأم) <span class="req">*</span>
+                  </label>
+                  <input type="text" id="authParentNameInput" class="form-input" placeholder="أحمد السعيد">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="authParentChildNameInput">
+                    <i class="fas fa-child"></i> اسم الطفل <span class="req">*</span>
+                  </label>
+                  <input type="text" id="authParentChildNameInput" class="form-input" placeholder="يوسف أحمد السعيد">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                <div class="form-group">
+                  <label class="form-label" for="authParentEmailInput">
+                    <i class="fas fa-envelope"></i> البريد الإلكتروني
+                  </label>
+                  <input type="email" id="authParentEmailInput" class="form-input" placeholder="parent@example.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="authParentPhoneInput">
+                    <i class="fas fa-mobile-screen"></i> رقم جوال ولي الأمر <span class="req">*</span>
+                  </label>
+                  <input type="tel" id="authParentPhoneInput" class="form-input" placeholder="01198765432">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                <div class="form-group">
+                  <label class="form-label" for="authParentChildDobInput">
+                    <i class="fas fa-calendar-alt"></i> تاريخ ميلاد الطفل
+                  </label>
+                  <input type="date" id="authParentChildDobInput" class="form-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="authParentChildGenderInput">
+                    <i class="fas fa-venus-mars"></i> جنس الطفل
+                  </label>
+                  <select id="authParentChildGenderInput" class="form-select">
+                    <option value="male">ذكر</option>
+                    <option value="female">أنثى</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Quick Child Account Selector -->
+              <div style="background:var(--bg-elevated); padding:0.5rem 0.75rem; border-radius:var(--radius-md); border:1px solid var(--border-color); font-size:0.82rem;">
+                <span style="color:var(--text-muted);"><i class="fas fa-bolt"></i> اختيار سريع لملف طفل مسجل:</span>
+                <select id="authParentSelectChild" class="form-select" style="margin-top:0.3rem; font-size:0.85rem;" onchange="handleQuickChildSelectChange(this.value)">
+                  <!-- Populated by JS -->
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btnSendOtpSubmit" style="width:100%; margin-top:0.5rem; padding:0.75rem;">
               <i class="fas fa-paper-plane"></i> إرسال رمز التحقق (OTP)
             </button>
           </div>

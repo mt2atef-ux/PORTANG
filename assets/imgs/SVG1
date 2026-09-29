@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="120" height="120">
+  <!-- خلفية الوثيقة -->
+  <rect x="15" y="10" width="70" height="80" rx="8" fill="#F0F4F8" stroke="#2C3E50" stroke-width="4"/>
+  <!-- سطور النص -->
+  <rect x="30" y="30" width="40" height="5" rx="2.5" fill="#34495E"/>
+  <rect x="30" y="45" width="30" height="5" rx="2.5" fill="#95A5A6"/>
+  <rect x="30" y="60" width="40" height="5" rx="2.5" fill="#95A5A6"/>
+  <!-- علامة الهدف / التركيز -->
+  <circle cx="75" cy="75" r="18" fill="#3498DB"/>
+  <circle cx="75" cy="75" r="12" fill="#FFF"/>
+  <circle cx="75" cy="75" r="6" fill="#E74C3C"/>
+</svg>
