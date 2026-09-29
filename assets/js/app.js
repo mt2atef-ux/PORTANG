@@ -41,8 +41,16 @@ const AppState = {
     dob: "2023-03-15",
     evalDate: new Date().toISOString().split('T')[0],
     gender: "male",
+    nationalId: "P-2026-001",
+    siblingRank: "الثاني من بين 3",
+    parentName: "أحمد السعيد",
+    parentPhone: "01198765432",
+    parentEmail: "parent.youssef@example.com",
+    city: "القاهرة - المعادي",
+    diagnosis: "تأخر نمائي لغوي بسيط وضعف اندماج اجتماعي",
+    school: "روضة الزهور الخاصة",
     specialist: "أ. منى زكي (أخصائية تربية خاصة)",
-    notes: "يعاني الطفل من تأخر بسيط في النمو اللغوي والاندماج الاجتماعي مع مهارات حركية جيدة.",
+    notes: "يعاني الطفل من تأخر بسيط في النمو اللغوي والاندماج الاجتماعي مع مهارات حركية جيدة واستجابة ممتازة للتعزيز.",
     chronologicalAgeMonths: 0,
     chronologicalAgeFormatted: "",
     sessions: []
@@ -186,8 +194,12 @@ function initEventListeners() {
     openModal('newChildModal');
   });
 
-  // Child Info Form inputs
-  const childInputs = ['childName', 'childDob', 'evalDate', 'childGender', 'specialistName', 'evalNotes'];
+  // Child Info Form inputs (Comprehensive Child Profile Dossier)
+  const childInputs = [
+    'childName', 'childDob', 'evalDate', 'childGender', 'childNationalId', 
+    'childSiblingRank', 'parentName', 'parentPhone', 'parentEmail', 
+    'childCity', 'childDiagnosis', 'childSchool', 'specialistName', 'evalNotes'
+  ];
   childInputs.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -830,6 +842,14 @@ function switchActiveSpecialist(specId) {
   document.getElementById('childDob').value = AppState.child.dob || "";
   document.getElementById('evalDate').value = AppState.child.evalDate || new Date().toISOString().split('T')[0];
   document.getElementById('childGender').value = AppState.child.gender || "male";
+  if (document.getElementById('childNationalId')) document.getElementById('childNationalId').value = AppState.child.nationalId || "";
+  if (document.getElementById('childSiblingRank')) document.getElementById('childSiblingRank').value = AppState.child.siblingRank || "";
+  if (document.getElementById('parentName')) document.getElementById('parentName').value = AppState.child.parentName || "";
+  if (document.getElementById('parentPhone')) document.getElementById('parentPhone').value = AppState.child.parentPhone || "";
+  if (document.getElementById('parentEmail')) document.getElementById('parentEmail').value = AppState.child.parentEmail || "";
+  if (document.getElementById('childCity')) document.getElementById('childCity').value = AppState.child.city || "";
+  if (document.getElementById('childDiagnosis')) document.getElementById('childDiagnosis').value = AppState.child.diagnosis || "";
+  if (document.getElementById('childSchool')) document.getElementById('childSchool').value = AppState.child.school || "";
   document.getElementById('specialistName').value = spec.name;
   document.getElementById('evalNotes').value = AppState.child.notes || "";
 
@@ -842,6 +862,7 @@ function switchActiveSpecialist(specId) {
   renderDomainButtons();
   renderAssessmentView();
   calculateAllResults();
+  updateReportHeader();
   saveState();
 }
 
@@ -869,6 +890,14 @@ function renderChildSelectDropdown() {
       dob: "2023-01-01",
       evalDate: new Date().toISOString().split('T')[0],
       gender: "male",
+      nationalId: "P-2026-001",
+      siblingRank: "الأول",
+      parentName: "ولي الأمر",
+      parentPhone: "",
+      parentEmail: "",
+      city: "",
+      diagnosis: "",
+      school: "",
       specialist: spec?.name || "",
       notes: "",
       chronologicalAgeMonths: 0,
@@ -883,7 +912,7 @@ function renderChildSelectDropdown() {
 
   select.innerHTML = Object.values(AppState.children).map(c => `
     <option value="${c.id}" ${c.id === AppState.activeChildId ? 'selected' : ''}>
-      ${c.name || 'طفل بدون اسم'}
+      ${c.name || 'طفل بدون اسم'} ${c.nationalId ? `(${c.nationalId})` : ''}
     </option>
   `).join('');
 }
@@ -894,7 +923,13 @@ function renderChildrenDirectoryTable(searchQuery = '') {
 
   const query = searchQuery.trim().toLowerCase();
   const childrenList = Object.values(AppState.children || {}).filter(c => {
-    return !query || (c.name && c.name.toLowerCase().includes(query)) || (c.specialist && c.specialist.toLowerCase().includes(query));
+    return !query || 
+      (c.name && c.name.toLowerCase().includes(query)) || 
+      (c.nationalId && c.nationalId.toLowerCase().includes(query)) ||
+      (c.parentName && c.parentName.toLowerCase().includes(query)) ||
+      (c.parentPhone && c.parentPhone.toLowerCase().includes(query)) ||
+      (c.diagnosis && c.diagnosis.toLowerCase().includes(query)) ||
+      (c.specialist && c.specialist.toLowerCase().includes(query));
   });
 
   if (childrenList.length === 0) {
@@ -919,8 +954,11 @@ function renderChildrenDirectoryTable(searchQuery = '') {
         <td>
           <div style="display:flex; align-items:center; gap:0.5rem;">
             <i class="fas fa-${c.gender === 'female' ? 'venus' : 'mars'}" style="color:${c.gender === 'female' ? 'var(--domain-infant)' : 'var(--domain-social)'};"></i>
-            <strong>${c.name || 'طفل بدون اسم'}</strong>
-            ${isCurrent ? '<span class="badge badge-ftda" style="font-size:0.68rem; padding:0.1rem 0.4rem;">المحدد حالياً</span>' : ''}
+            <div>
+              <strong>${c.name || 'طفل بدون اسم'}</strong>
+              ${c.nationalId ? `<div style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">ملف: ${c.nationalId}</div>` : ''}
+            </div>
+            ${isCurrent ? '<span class="badge badge-ftda" style="font-size:0.68rem; padding:0.1rem 0.4rem; margin-right:auto;">النشط</span>' : ''}
           </div>
         </td>
         <td>${c.dob || '—'}</td>
@@ -960,11 +998,19 @@ function switchActiveChild(childId) {
   AppState.evaluations = AppState.child.currentEvaluations || {};
   AppState.iepSelectedGoals = new Set(AppState.child.currentIepGoals || []);
 
-  // Sync Form UI
+  // Sync Form UI (Full Dossier Fields)
   document.getElementById('childName').value = AppState.child.name || "";
   document.getElementById('childDob').value = AppState.child.dob || "";
   document.getElementById('evalDate').value = AppState.child.evalDate || new Date().toISOString().split('T')[0];
   document.getElementById('childGender').value = AppState.child.gender || "male";
+  if (document.getElementById('childNationalId')) document.getElementById('childNationalId').value = AppState.child.nationalId || "";
+  if (document.getElementById('childSiblingRank')) document.getElementById('childSiblingRank').value = AppState.child.siblingRank || "";
+  if (document.getElementById('parentName')) document.getElementById('parentName').value = AppState.child.parentName || "";
+  if (document.getElementById('parentPhone')) document.getElementById('parentPhone').value = AppState.child.parentPhone || "";
+  if (document.getElementById('parentEmail')) document.getElementById('parentEmail').value = AppState.child.parentEmail || "";
+  if (document.getElementById('childCity')) document.getElementById('childCity').value = AppState.child.city || "";
+  if (document.getElementById('childDiagnosis')) document.getElementById('childDiagnosis').value = AppState.child.diagnosis || "";
+  if (document.getElementById('childSchool')) document.getElementById('childSchool').value = AppState.child.school || "";
   document.getElementById('specialistName').value = AppState.specialists[AppState.activeSpecialistId]?.name || AppState.child.specialist || "";
   document.getElementById('evalNotes').value = AppState.child.notes || "";
 
@@ -974,6 +1020,7 @@ function switchActiveChild(childId) {
   renderDomainButtons();
   renderAssessmentView();
   calculateAllResults();
+  updateReportHeader();
   saveState();
 }
 
@@ -981,6 +1028,14 @@ function handleCreateNewChildSubmit() {
   const name = document.getElementById('newChildNameInput')?.value.trim();
   const dob = document.getElementById('newChildDobInput')?.value;
   const gender = document.getElementById('newChildGenderInput')?.value || "male";
+  const nationalId = document.getElementById('newChildNationalIdInput')?.value.trim() || "";
+  const siblingRank = document.getElementById('newChildSiblingRankInput')?.value.trim() || "";
+  const parentName = document.getElementById('newChildParentNameInput')?.value.trim() || "";
+  const parentPhone = document.getElementById('newChildParentPhoneInput')?.value.trim() || "";
+  const parentEmail = document.getElementById('newChildParentEmailInput')?.value.trim() || "";
+  const city = document.getElementById('newChildCityInput')?.value.trim() || "";
+  const diagnosis = document.getElementById('newChildDiagnosisInput')?.value.trim() || "";
+  const school = document.getElementById('newChildSchoolInput')?.value.trim() || "";
   const spec = AppState.specialists[AppState.activeSpecialistId];
   const specialist = document.getElementById('newChildSpecialistInput')?.value.trim() || spec?.name || "";
 
@@ -996,6 +1051,14 @@ function handleCreateNewChildSubmit() {
     dob: dob,
     evalDate: new Date().toISOString().split('T')[0],
     gender: gender,
+    nationalId: nationalId,
+    siblingRank: siblingRank,
+    parentName: parentName,
+    parentPhone: parentPhone,
+    parentEmail: parentEmail,
+    city: city,
+    diagnosis: diagnosis,
+    school: school,
     specialist: specialist,
     notes: "",
     chronologicalAgeMonths: 0,
@@ -1041,12 +1104,20 @@ function saveCurrentChildToMap() {
   AppState.children[AppState.activeChildId] = { ...AppState.child };
 }
 
-// Handle Child Info Form changes
+// Handle Child Info Form changes (Full Dossier Synchronization)
 function handleChildInfoChange() {
   AppState.child.name = document.getElementById('childName')?.value || "";
   AppState.child.dob = document.getElementById('childDob')?.value || "";
   AppState.child.evalDate = document.getElementById('evalDate')?.value || "";
   AppState.child.gender = document.getElementById('childGender')?.value || "male";
+  AppState.child.nationalId = document.getElementById('childNationalId')?.value || "";
+  AppState.child.siblingRank = document.getElementById('childSiblingRank')?.value || "";
+  AppState.child.parentName = document.getElementById('parentName')?.value || "";
+  AppState.child.parentPhone = document.getElementById('parentPhone')?.value || "";
+  AppState.child.parentEmail = document.getElementById('parentEmail')?.value || "";
+  AppState.child.city = document.getElementById('childCity')?.value || "";
+  AppState.child.diagnosis = document.getElementById('childDiagnosis')?.value || "";
+  AppState.child.school = document.getElementById('childSchool')?.value || "";
   AppState.child.specialist = document.getElementById('specialistName')?.value || "";
   AppState.child.notes = document.getElementById('evalNotes')?.value || "";
 
@@ -2019,7 +2090,7 @@ function toggleIEPGoalSelection(goalKey, isChecked) {
   saveState();
 }
 
-// Update Printable Report Header Information
+// Update Printable Report Header Information (Full Child Profile Dossier)
 function updateReportHeader() {
   const nameEl = document.getElementById('reportChildName');
   if (nameEl) nameEl.textContent = AppState.child.name || "—";
@@ -2029,6 +2100,24 @@ function updateReportHeader() {
 
   const ageEl = document.getElementById('reportChildAge');
   if (ageEl) ageEl.textContent = AppState.child.chronologicalAgeFormatted || "—";
+
+  const genderEl = document.getElementById('reportChildGender');
+  if (genderEl) genderEl.textContent = AppState.child.gender === 'female' ? 'أنثى' : 'ذكر';
+
+  const nationalIdEl = document.getElementById('reportChildNationalId');
+  if (nationalIdEl) nationalIdEl.textContent = AppState.child.nationalId || "—";
+
+  const parentNameEl = document.getElementById('reportParentName');
+  if (parentNameEl) parentNameEl.textContent = AppState.child.parentName || "—";
+
+  const parentPhoneEl = document.getElementById('reportParentPhone');
+  if (parentPhoneEl) parentPhoneEl.textContent = AppState.child.parentPhone || "—";
+
+  const diagnosisEl = document.getElementById('reportChildDiagnosis');
+  if (diagnosisEl) diagnosisEl.textContent = AppState.child.diagnosis || "—";
+
+  const schoolEl = document.getElementById('reportChildSchool');
+  if (schoolEl) schoolEl.textContent = AppState.child.school || "—";
 
   const dateEl = document.getElementById('reportEvalDate');
   if (dateEl) dateEl.textContent = AppState.child.evalDate || "—";
@@ -2337,8 +2426,17 @@ function loadSavedState() {
       document.getElementById('childDob').value = AppState.child.dob || "";
       document.getElementById('evalDate').value = AppState.child.evalDate || new Date().toISOString().split('T')[0];
       document.getElementById('childGender').value = AppState.child.gender || "male";
+      if (document.getElementById('childNationalId')) document.getElementById('childNationalId').value = AppState.child.nationalId || "";
+      if (document.getElementById('childSiblingRank')) document.getElementById('childSiblingRank').value = AppState.child.siblingRank || "";
+      if (document.getElementById('parentName')) document.getElementById('parentName').value = AppState.child.parentName || "";
+      if (document.getElementById('parentPhone')) document.getElementById('parentPhone').value = AppState.child.parentPhone || "";
+      if (document.getElementById('parentEmail')) document.getElementById('parentEmail').value = AppState.child.parentEmail || "";
+      if (document.getElementById('childCity')) document.getElementById('childCity').value = AppState.child.city || "";
+      if (document.getElementById('childDiagnosis')) document.getElementById('childDiagnosis').value = AppState.child.diagnosis || "";
+      if (document.getElementById('childSchool')) document.getElementById('childSchool').value = AppState.child.school || "";
       document.getElementById('specialistName').value = AppState.specialists[AppState.activeSpecialistId]?.name || AppState.child.specialist || "";
       document.getElementById('evalNotes').value = AppState.child.notes || "";
+      updateReportHeader();
       return;
     } catch (e) {
       console.error("Error loading v3 state:", e);
@@ -2370,8 +2468,17 @@ function loadSavedState() {
       document.getElementById('childDob').value = AppState.child.dob || "";
       document.getElementById('evalDate').value = AppState.child.evalDate || new Date().toISOString().split('T')[0];
       document.getElementById('childGender').value = AppState.child.gender || "male";
+      if (document.getElementById('childNationalId')) document.getElementById('childNationalId').value = AppState.child.nationalId || "";
+      if (document.getElementById('childSiblingRank')) document.getElementById('childSiblingRank').value = AppState.child.siblingRank || "";
+      if (document.getElementById('parentName')) document.getElementById('parentName').value = AppState.child.parentName || "";
+      if (document.getElementById('parentPhone')) document.getElementById('parentPhone').value = AppState.child.parentPhone || "";
+      if (document.getElementById('parentEmail')) document.getElementById('parentEmail').value = AppState.child.parentEmail || "";
+      if (document.getElementById('childCity')) document.getElementById('childCity').value = AppState.child.city || "";
+      if (document.getElementById('childDiagnosis')) document.getElementById('childDiagnosis').value = AppState.child.diagnosis || "";
+      if (document.getElementById('childSchool')) document.getElementById('childSchool').value = AppState.child.school || "";
       document.getElementById('specialistName').value = AppState.specialists[defaultSpecId]?.name || "";
       document.getElementById('evalNotes').value = AppState.child.notes || "";
+      updateReportHeader();
     } catch (e) {
       console.error("Error loading legacy state:", e);
     }
@@ -2404,6 +2511,14 @@ function exportAssessmentReportJSON() {
       chronologicalAgeMonths: AppState.child.chronologicalAgeMonths || 0,
       chronologicalAgeFormatted: AppState.child.chronologicalAgeFormatted || "",
       gender: AppState.child.gender === 'female' ? 'أنثى' : 'ذكر',
+      nationalId: AppState.child.nationalId || "",
+      siblingRank: AppState.child.siblingRank || "",
+      parentName: AppState.child.parentName || "",
+      parentPhone: AppState.child.parentPhone || "",
+      parentEmail: AppState.child.parentEmail || "",
+      city: AppState.child.city || "",
+      diagnosis: AppState.child.diagnosis || "",
+      school: AppState.child.school || "",
       evaluationDate: AppState.child.evalDate || "",
       notes: AppState.child.notes || ""
     },
@@ -2514,6 +2629,12 @@ function exportIEPPlanJSON() {
       name: AppState.child.name || "طفل",
       dob: AppState.child.dob || "",
       chronologicalAgeFormatted: AppState.child.chronologicalAgeFormatted || "",
+      gender: AppState.child.gender === 'female' ? 'أنثى' : 'ذكر',
+      nationalId: AppState.child.nationalId || "",
+      parentName: AppState.child.parentName || "",
+      parentPhone: AppState.child.parentPhone || "",
+      diagnosis: AppState.child.diagnosis || "",
+      school: AppState.child.school || "",
       evaluationDate: AppState.child.evalDate || "",
       notes: AppState.child.notes || ""
     },
@@ -2612,6 +2733,14 @@ function importAssessmentJSON(event) {
       document.getElementById('childDob').value = AppState.child.dob || "";
       document.getElementById('evalDate').value = AppState.child.evalDate || "";
       document.getElementById('childGender').value = AppState.child.gender || "male";
+      if (document.getElementById('childNationalId')) document.getElementById('childNationalId').value = AppState.child.nationalId || "";
+      if (document.getElementById('childSiblingRank')) document.getElementById('childSiblingRank').value = AppState.child.siblingRank || "";
+      if (document.getElementById('parentName')) document.getElementById('parentName').value = AppState.child.parentName || "";
+      if (document.getElementById('parentPhone')) document.getElementById('parentPhone').value = AppState.child.parentPhone || "";
+      if (document.getElementById('parentEmail')) document.getElementById('parentEmail').value = AppState.child.parentEmail || "";
+      if (document.getElementById('childCity')) document.getElementById('childCity').value = AppState.child.city || "";
+      if (document.getElementById('childDiagnosis')) document.getElementById('childDiagnosis').value = AppState.child.diagnosis || "";
+      if (document.getElementById('childSchool')) document.getElementById('childSchool').value = AppState.child.school || "";
       document.getElementById('specialistName').value = AppState.specialists[AppState.activeSpecialistId]?.name || AppState.child.specialist || "";
       document.getElementById('evalNotes').value = AppState.child.notes || "";
 
@@ -2624,6 +2753,7 @@ function importAssessmentJSON(event) {
       renderDomainButtons();
       renderAssessmentView();
       calculateAllResults();
+      updateReportHeader();
       alert("تم استيراد وتحديث قاعدة البيانات بنجاح!");
     } catch (err) {
       alert("حدث خطأ أثناء قراءة الملف. يرجى التأكد من صحة ملف JSON.");
@@ -2642,6 +2772,14 @@ function loadDemoData() {
       dob: "2023-03-15",
       evalDate: new Date().toISOString().split('T')[0],
       gender: "male",
+      nationalId: "P-2026-001",
+      siblingRank: "الثاني من بين 3",
+      parentName: "أحمد السعيد",
+      parentPhone: "01198765432",
+      parentEmail: "parent.youssef@example.com",
+      city: "القاهرة - المعادي",
+      diagnosis: "تأخر نمائي لغوي واجتماعي بسيط",
+      school: "روضة الزهور الخاصة",
       specialist: "أ. منى زكي",
       notes: "يعاني من تأخر بسيط في النمو اللغوي والاندماج الاجتماعي مع استجابة ممتازة للتعزيز.",
       chronologicalAgeMonths: 36,
@@ -2679,6 +2817,14 @@ function loadDemoData() {
       dob: "2022-08-10",
       evalDate: new Date().toISOString().split('T')[0],
       gender: "female",
+      nationalId: "P-2026-002",
+      siblingRank: "الأولى (الطفلة الوحيدة)",
+      parentName: "محمود الشريف",
+      parentPhone: "01099887766",
+      parentEmail: "mariam.family@example.com",
+      city: "الجيزة - الدقي",
+      diagnosis: "تنمية مهارات واستقلالية رعاية الذات",
+      school: "حضانة براعم الغد",
       specialist: "أ. منى زكي",
       notes: "تقييم متابعة دوري لتنمية المهارات المعرفية والاستقلالية ورعاية الذات.",
       chronologicalAgeMonths: 43,
@@ -2716,6 +2862,14 @@ function loadDemoData() {
       dob: "2021-11-20",
       evalDate: new Date().toISOString().split('T')[0],
       gender: "male",
+      nationalId: "P-2026-003",
+      siblingRank: "الثالث",
+      parentName: "طارق المهدي",
+      parentPhone: "01234567890",
+      parentEmail: "tarek.mahdi@example.com",
+      city: "الإسكندرية - سموحة",
+      diagnosis: "عسر نطق وتأخر تعبيري لغوي",
+      school: "مدرسة المنار للغات",
       specialist: "د. خالد النجار",
       notes: "برنامج تأهيلي مكثف لعلاج عسر النطق وتطوير المفردات التعبيرية.",
       chronologicalAgeMonths: 52,
@@ -2774,6 +2928,14 @@ function loadDemoData() {
   document.getElementById('childDob').value = AppState.child.dob;
   document.getElementById('evalDate').value = AppState.child.evalDate;
   document.getElementById('childGender').value = AppState.child.gender;
+  if (document.getElementById('childNationalId')) document.getElementById('childNationalId').value = AppState.child.nationalId || "";
+  if (document.getElementById('childSiblingRank')) document.getElementById('childSiblingRank').value = AppState.child.siblingRank || "";
+  if (document.getElementById('parentName')) document.getElementById('parentName').value = AppState.child.parentName || "";
+  if (document.getElementById('parentPhone')) document.getElementById('parentPhone').value = AppState.child.parentPhone || "";
+  if (document.getElementById('parentEmail')) document.getElementById('parentEmail').value = AppState.child.parentEmail || "";
+  if (document.getElementById('childCity')) document.getElementById('childCity').value = AppState.child.city || "";
+  if (document.getElementById('childDiagnosis')) document.getElementById('childDiagnosis').value = AppState.child.diagnosis || "";
+  if (document.getElementById('childSchool')) document.getElementById('childSchool').value = AppState.child.school || "";
   document.getElementById('specialistName').value = AppState.specialists["spec_1"].name;
   document.getElementById('evalNotes').value = AppState.child.notes;
 
@@ -2786,5 +2948,6 @@ function loadDemoData() {
   renderDomainButtons();
   renderAssessmentView();
   calculateAllResults();
-  alert("تم بنجاح تهيئة قاعدة بيانات متكاملة تتضمن حسابين لأخصائيين مستقلين و 3 ملفات أطفال مع سجلات تقييم تاريخية وخطط فردية!");
+  updateReportHeader();
+  alert("تم بنجاح تهيئة قاعدة بيانات متكاملة تتضمن ملفات كاملة للأطفال ببياناتهم الشاملة وسجلات تقييمهم!");
 }

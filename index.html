@@ -185,7 +185,11 @@
           </div>
 
           <form id="childIntakeForm" onsubmit="event.preventDefault(); switchTab('assessment');">
-            <div class="form-grid">
+            <!-- 1. Basic Child Info -->
+            <div style="font-weight:800; color:var(--primary); font-size:0.95rem; margin-bottom:0.75rem; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+              <i class="fas fa-child"></i> 1. البيانات الشخصية الأساسية للطفل
+            </div>
+            <div class="form-grid" style="margin-bottom:1.25rem;">
               <div class="form-group">
                 <label class="form-label" for="childName">
                   اسم الطفل الرباعي <span class="req">*</span>
@@ -201,13 +205,6 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="evalDate">
-                  تاريخ التقييم <span class="req">*</span>
-                </label>
-                <input type="date" id="evalDate" class="form-input" required>
-              </div>
-
-              <div class="form-group">
                 <label class="form-label" for="childGender">الجنس</label>
                 <select id="childGender" class="form-select">
                   <option value="male">ذكر</option>
@@ -216,12 +213,71 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="specialistName">اسم الأخصائي الفاحص</label>
+                <label class="form-label" for="childNationalId">رقم الملف / الهوية</label>
+                <input type="text" id="childNationalId" class="form-input" placeholder="مثال: P-2026-001">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="childSiblingRank">ترتيب الطفل بين الإخوة</label>
+                <input type="text" id="childSiblingRank" class="form-input" placeholder="مثال: الثاني من بين 3">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="evalDate">
+                  تاريخ التقييم <span class="req">*</span>
+                </label>
+                <input type="date" id="evalDate" class="form-input" required>
+              </div>
+            </div>
+
+            <!-- 2. Family & Contact Info -->
+            <div style="font-weight:800; color:var(--primary); font-size:0.95rem; margin-bottom:0.75rem; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+              <i class="fas fa-house-user"></i> 2. بيانات الأسرة والتواصل
+            </div>
+            <div class="form-grid" style="margin-bottom:1.25rem;">
+              <div class="form-group">
+                <label class="form-label" for="parentName">اسم ولي الأمر (الأب / الأم)</label>
+                <input type="text" id="parentName" class="form-input" placeholder="مثال: أحمد السعيد">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="parentPhone">رقم هاتف التواصل (جوال ولي الأمر)</label>
+                <input type="tel" id="parentPhone" class="form-input" placeholder="مثال: 01198765432">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="parentEmail">البريد الإلكتروني لولي الأمر</label>
+                <input type="email" id="parentEmail" class="form-input" placeholder="parent@example.com">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="childCity">المدينة / العنوان السكني</label>
+                <input type="text" id="childCity" class="form-input" placeholder="مثال: القاهرة - المعادي">
+              </div>
+            </div>
+
+            <!-- 3. Clinical, Educational & Referral Info -->
+            <div style="font-weight:800; color:var(--primary); font-size:0.95rem; margin-bottom:0.75rem; border-bottom:1px solid var(--border-color); padding-bottom:0.35rem;">
+              <i class="fas fa-stethoscope"></i> 3. البيانات التشخيصية والتعليمية
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="childDiagnosis">التشخيص الأولي / سبب الإحالة</label>
+                <input type="text" id="childDiagnosis" class="form-input" placeholder="مثال: تأخر لغوي نمائي، طيف توحد، فرط حركة...">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="childSchool">اسم الروضة / المدرسة</label>
+                <input type="text" id="childSchool" class="form-input" placeholder="مثال: روضة الزهور الخاصة">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="specialistName">الأخصائي الفاحص المسئول</label>
                 <input type="text" id="specialistName" class="form-input" placeholder="اسم الأخصائي المسئول">
               </div>
 
               <div class="form-group full-width">
-                <label class="form-label" for="evalNotes">ملاحظات وسلوك الطفل أثناء التقييم</label>
+                <label class="form-label" for="evalNotes">ملاحظات وسلوك الطفل أثناء جلسة التقييم</label>
                 <textarea id="evalNotes" class="form-textarea" rows="3" placeholder="اكتب أي ملاحظات تتعلق باستجابة الطفل، مستوى التركيز، التعاون، البيئة المحيطة..."></textarea>
               </div>
             </div>
@@ -233,7 +289,7 @@
 
             <div class="form-action-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
               <button type="button" class="btn btn-secondary" onclick="openModal('newChildModal')">
-                <i class="fas fa-plus"></i> إضافة طفل جديد لحساب هذا الأخصائي
+                <i class="fas fa-plus"></i> إضافة ملف طفل جديد
               </button>
               <button type="submit" class="btn btn-primary">
                 الانتقال لتقييم مهارات البورتيدج <i class="fas fa-arrow-left"></i>
@@ -518,11 +574,17 @@
             </div>
           </div>
 
-          <!-- Child Profile Summary Box -->
-          <div class="report-profile-box">
+          <!-- Child Profile Summary Box (Full Dossier) -->
+          <div class="report-profile-box" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.6rem;">
             <div><strong>اسم الطفل:</strong> <span id="reportChildName">—</span></div>
             <div><strong>تاريخ الميلاد:</strong> <span id="reportChildDob">—</span></div>
             <div><strong>العمر الزمني:</strong> <span id="reportChildAge">—</span></div>
+            <div><strong>الجنس:</strong> <span id="reportChildGender">—</span></div>
+            <div><strong>رقم الملف:</strong> <span id="reportChildNationalId">—</span></div>
+            <div><strong>ولي الأمر:</strong> <span id="reportParentName">—</span></div>
+            <div><strong>هاتف التواصل:</strong> <span id="reportParentPhone">—</span></div>
+            <div><strong>التشخيص / سبب الإحالة:</strong> <span id="reportChildDiagnosis">—</span></div>
+            <div><strong>الروضة / المدرسة:</strong> <span id="reportChildSchool">—</span></div>
             <div><strong>تاريخ التقييم:</strong> <span id="reportEvalDate">—</span></div>
             <div><strong>الأخصائي الفاحص:</strong> <span id="reportSpecialist">—</span></div>
           </div>
@@ -719,34 +781,92 @@
         </div>
 
         <form id="createNewChildForm" onsubmit="event.preventDefault(); handleCreateNewChildSubmit();">
-          <div style="display:flex; flex-direction:column; gap:1rem;">
-            <div class="form-group">
-              <label class="form-label" for="newChildNameInput">اسم الطفل <span class="req">*</span></label>
-              <input type="text" id="newChildNameInput" class="form-input" placeholder="مثال: سارة محمد خالد" required>
+          <div style="display:flex; flex-direction:column; gap:0.9rem; max-height:65vh; overflow-y:auto; padding-right:4px;">
+            <!-- 1. Basic Info -->
+            <div style="font-weight:700; color:var(--primary); font-size:0.88rem; border-bottom:1px solid var(--border-color); padding-bottom:0.25rem;">
+              <i class="fas fa-child"></i> البيانات الشخصية للطفل
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:0.75rem;">
+              <div class="form-group" style="grid-column:1/-1;">
+                <label class="form-label" for="newChildNameInput">اسم الطفل الرباعي <span class="req">*</span></label>
+                <input type="text" id="newChildNameInput" class="form-input" placeholder="مثال: سارة محمد خالد" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="newChildDobInput">تاريخ الميلاد <span class="req">*</span></label>
+                <input type="date" id="newChildDobInput" class="form-input" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="newChildGenderInput">الجنس</label>
+                <select id="newChildGenderInput" class="form-select">
+                  <option value="male">ذكر</option>
+                  <option value="female">أنثى</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="newChildNationalIdInput">رقم الملف / الهوية</label>
+                <input type="text" id="newChildNationalIdInput" class="form-input" placeholder="مثال: P-2026-005">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="newChildSiblingRankInput">ترتيبه بين الإخوة</label>
+                <input type="text" id="newChildSiblingRankInput" class="form-input" placeholder="مثال: الأول">
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="newChildDobInput">تاريخ الميلاد <span class="req">*</span></label>
-              <input type="date" id="newChildDobInput" class="form-input" required>
+            <!-- 2. Family Info -->
+            <div style="font-weight:700; color:var(--primary); font-size:0.88rem; border-bottom:1px solid var(--border-color); padding-bottom:0.25rem; margin-top:0.25rem;">
+              <i class="fas fa-house-user"></i> بيانات الأسرة والتواصل
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:0.75rem;">
+              <div class="form-group">
+                <label class="form-label" for="newChildParentNameInput">اسم ولي الأمر</label>
+                <input type="text" id="newChildParentNameInput" class="form-input" placeholder="مثال: محمد خالد">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="newChildParentPhoneInput">رقم هاتف ولي الأمر</label>
+                <input type="tel" id="newChildParentPhoneInput" class="form-input" placeholder="مثال: 010xxxxxxxx">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="newChildParentEmailInput">البريد الإلكتروني</label>
+                <input type="email" id="newChildParentEmailInput" class="form-input" placeholder="parent@example.com">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="newChildCityInput">المدينة / العنوان</label>
+                <input type="text" id="newChildCityInput" class="form-input" placeholder="مثال: الإسكندرية">
+              </div>
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="newChildGenderInput">الجنس</label>
-              <select id="newChildGenderInput" class="form-select">
-                <option value="male">ذكر</option>
-                <option value="female">أنثى</option>
-              </select>
+            <!-- 3. Medical & Educational Info -->
+            <div style="font-weight:700; color:var(--primary); font-size:0.88rem; border-bottom:1px solid var(--border-color); padding-bottom:0.25rem; margin-top:0.25rem;">
+              <i class="fas fa-stethoscope"></i> البيانات التشخيصية والتعليمية
             </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:0.75rem;">
+              <div class="form-group">
+                <label class="form-label" for="newChildDiagnosisInput">التشخيص الأولي / سبب الإحالة</label>
+                <input type="text" id="newChildDiagnosisInput" class="form-input" placeholder="مثال: تأخر نمائي عام">
+              </div>
 
-            <div class="form-group">
-              <label class="form-label" for="newChildSpecialistInput">الأخصائي الفاحص</label>
-              <input type="text" id="newChildSpecialistInput" class="form-input" placeholder="اسم الأخصائي المسئول">
+              <div class="form-group">
+                <label class="form-label" for="newChildSchoolInput">اسم الروضة / الحضانة</label>
+                <input type="text" id="newChildSchoolInput" class="form-input" placeholder="مثال: حضانة الأمل">
+              </div>
+
+              <div class="form-group" style="grid-column:1/-1;">
+                <label class="form-label" for="newChildSpecialistInput">الأخصائي الفاحص المسؤول</label>
+                <input type="text" id="newChildSpecialistInput" class="form-input" placeholder="اسم الأخصائي">
+              </div>
             </div>
           </div>
 
-          <div class="modal-actions-row">
+          <div class="modal-actions-row" style="margin-top:1rem;">
             <button type="button" class="btn btn-secondary" onclick="closeModal('newChildModal')">إلغاء</button>
-            <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> إنشاء الملف وبدء التقييم</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> حفظ الملف وبدء التقييم</button>
           </div>
         </form>
       </div>
