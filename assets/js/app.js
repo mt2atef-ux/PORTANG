@@ -1451,7 +1451,7 @@ function renderIEPPlan() {
   const totalMissing = candidateGoals.length;
   const summaryEl = document.getElementById('iepSummaryText');
   if (summaryEl) {
-    summaryEl.innerHTML = `تم استخراج <strong>${totalMissing} هدف نمائي</strong> يحتاج الطفل إلى اكتسابه أو تثبيته. تم ترتيب الأهداف بدءاً من المهارات قيد البزوغ والمهارات الأساسية المبكرة.`;
+    summaryEl.innerHTML = `تم استخراج <strong>${totalMissing} هدف نمائي</strong> يحتاج الطفل إلى اكتسابه أو تثبيته. تم بناء خطة أنشطة تدريبية متكاملة تتضمن <strong>5 أنشطة عملية متدرجة</strong> لكل مهارة.`;
   }
 
   if (candidateGoals.length === 0) {
@@ -1459,7 +1459,7 @@ function renderIEPPlan() {
       <div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--text-muted);">
         <i class="fas fa-award fa-3x" style="color:var(--success); margin-bottom:1rem;"></i>
         <h3>لا توجد مهارات مفقودة مسجلة حتى الآن</h3>
-        <p>قم بتقييم مهارات الطفل وتحديد المهارات غير المكتسبة (-) أو قيد التدريب (±) لاستخراج الخطة التربوية الفردية تلقائياً.</p>
+        <p>قم بتقييم مهارات الطفل وتحديد المهارات غير المكتسبة (-) أو قيد التدريب (±) لاستخراج الخطة التربوية الفردية التلقائية مع أنشطتها التفصيلية.</p>
       </div>
     `;
     return;
@@ -1467,11 +1467,12 @@ function renderIEPPlan() {
 
   container.innerHTML = candidateGoals.map((goal) => {
     const isSelected = AppState.iepSelectedGoals.has(goal.key);
-    const suggestedStrategy = generateTrainingStrategy(goal);
+    const guide = SKILL_GUIDES.getGuide(goal.domainId, goal.ageIndex, goal.skillId, goal.skillText);
     const escapedSkillText = goal.skillText.replace(/'/g, "\\'");
+    const detailsId = `iep_activities_${goal.key.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
     return `
-      <div class="goal-card" style="border-right: 4px solid ${goal.domainColor}">
+      <div class="goal-card" style="border-right: 5px solid ${goal.domainColor}">
         <div class="goal-header">
           <span class="goal-domain-badge" style="background-color: ${goal.domainColor}">
             <i class="fas fa-${goal.domainIcon}"></i> ${goal.domainName}
@@ -1484,18 +1485,59 @@ function renderIEPPlan() {
         
         <div class="goal-meta">
           <div><i class="fas fa-layer-group"></i> <strong>الفئة المستهدفة:</strong> ${goal.ageLabel}</div>
-          <div><i class="fas fa-lightbulb"></i> <strong>الاستراتيجية التدريبية المقترحة:</strong> ${suggestedStrategy.strategy}</div>
-          <div><i class="fas fa-tools"></i> <strong>الأدوات والوسائل:</strong> ${suggestedStrategy.materials}</div>
-          <div><i class="fas fa-home"></i> <strong>توجيهات لولي الأمر:</strong> ${suggestedStrategy.parentTip}</div>
+          <div><i class="fas fa-bullseye"></i> <strong>الهدف السلوكي:</strong> ${guide.objective}</div>
+          <div><i class="fas fa-tools"></i> <strong>الأدوات المقترحة:</strong> ${guide.materials}</div>
         </div>
 
-        <div class="goal-actions">
-          <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.85rem; font-weight:600;">
+        <!-- 5 Structured Activities Accordion / Preview -->
+        <div style="margin-top:0.75rem; border-top:1px solid var(--border-color); padding-top:0.75rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <span style="font-weight:700; font-size:0.85rem; color:var(--primary);">
+              <i class="fas fa-tasks"></i> خطة العمل التنفيذية (5 أنشطة تدريبية متدرجة):
+            </span>
+            <button type="button" class="btn btn-xs btn-outline" onclick="const el = document.getElementById('${detailsId}'); el.style.display = el.style.display === 'none' ? 'block' : 'none';">
+              <i class="fas fa-chevron-down"></i> استعراض الأنشطة الـ 5
+            </button>
+          </div>
+
+          <div id="${detailsId}" style="display:none; margin-top:0.5rem;" class="activities-grid">
+            ${guide.activities.map(act => `
+              <div class="activity-card">
+                <div class="activity-card-header">
+                  <div class="activity-card-title">
+                    <i class="fas fa-${act.icon}" style="color:${goal.domainColor};"></i>
+                    <span>${act.number}. ${act.title}</span>
+                  </div>
+                  <span class="activity-tag">${act.type}</span>
+                </div>
+                <div class="activity-objective-box">
+                  <strong>الهدف:</strong> ${act.objective}
+                </div>
+                <ol class="activity-steps-list">
+                  ${act.steps.map(s => `<li>${s}</li>`).join('')}
+                </ol>
+                <div class="activity-meta-grid">
+                  <div class="activity-meta-item">
+                    <i class="fas fa-tools text-primary"></i>
+                    <div><strong>الأدوات:</strong> ${act.tools}</div>
+                  </div>
+                  <div class="activity-meta-item">
+                    <i class="fas fa-home text-primary"></i>
+                    <div><strong>المنزل:</strong> ${act.homeIntegration}</div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="goal-actions" style="margin-top:1rem;">
+          <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.85rem; font-weight:700;">
             <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleIEPGoalSelection('${goal.key}', this.checked)">
-            تضمين في الخطة الرسمية
+            تضمين في الخطة الرسمية المعتمدة
           </label>
           <button class="btn btn-xs btn-outline" onclick="openSkillGuide('${goal.domainId}', ${goal.ageIndex}, ${goal.skillId}, '${escapedSkillText}', '${goal.ageLabel}')">
-            <i class="fas fa-question-circle"></i> دليل المهارة
+            <i class="fas fa-question-circle"></i> دليل المهارة ومعاييرها
           </button>
         </div>
       </div>
@@ -1504,43 +1546,12 @@ function renderIEPPlan() {
 }
 
 function generateTrainingStrategy(goal) {
-  const domainStrategies = {
-    social: {
-      strategy: "النمذجة والتقليد والتعزيز الإيجابي الفوري مع توفير فرص اللعب التفاعلي مع الأقران والأسرة.",
-      materials: "ألعاب تفاعلية، مرآة، دمى، معززات رمزية ومادية.",
-      parentTip: "شجع الطفل في المواقف اليومية بالمنزل واحتفل بكل محاولة ناجحة."
-    },
-    language: {
-      strategy: "التسمية اللفظية المتكررة، التوسع في جمل الطفل، واستخدام الحث اللفظي والبصري مع خفض الحث تدريجياً.",
-      materials: "بطاقات مصورة، كتب قصصية ملونة، مجسمات حقيقية، ألعاب صوتية.",
-      parentTip: "تحدث مع طفلك باستمرار واسأله أسئلة مفتوحة وامنحه وقتاً كافياً للإجابة."
-    },
-    selfHelp: {
-      strategy: "تحليل المهمة (Task Analysis) إلى خطوات صغيرة وتطبيق التدريب المتسلسل (الحث الجسدي ثم الإيمائي).",
-      materials: "أدوات مائدة بلاستيكية، ملابس ذات سحابات وأزرار سهلة، مجسمات تنظيف الأسنان.",
-      parentTip: "امنح الطفل فرصة الاعتماد على نفسه في المهام اليومية مع الصبر وعدم الاستعجال بمساعدته."
-    },
-    cognitive: {
-      strategy: "التدريب الحسي المتعدد والتعليم بالمطابقة والتصنيف عبر اللعب الاستكشافي الموجه.",
-      materials: "مكعبات، لوحات أوتاد، أشكال هندسية، بطاقات تطابق، خرز وخيوط.",
-      parentTip: "دمج المفاهيم (الألوان، الأحجام، الأعداد) أثناء أنشطة الحياة اليومية كإعداد المائدة أو ترتيب الألعاب."
-    },
-    motor: {
-      strategy: "التدريب الحركي المتدرج من الحركات الكبرى إلى الدقيقة مع تمارين التوازن والتآزر البصري الحركي.",
-      materials: "كرات بأحجام مختلفة، خرز، مقصات آمنة، صلصال، حبال قفز، ألواح توازن.",
-      parentTip: "وفر للطفل بيئة آمنة في المنزل أو الحديقة لممارسة الجري والقفز واستخدام الصلصال والقص واللصق."
-    },
-    infant: {
-      strategy: "الإثارة الحسية المتوازنة (بصرية، سمعية، لمسية) والتفاعل الحميمي والتدليك اللطيف.",
-      materials: "شخشيخة، ألعاب تصدر أصواتاً، إضاءات ناعمة، أقمشة ذات ملامس مختلفة.",
-      parentTip: "الاستجابة الفورية لمناغاة وبكاء الرضيع وتوفير تواصل بصري وجلدي مستمر."
-    }
-  };
-
-  return domainStrategies[goal.domainId] || {
-    strategy: "النمذجة والتعزيز الإيجابي مع التدريب المتدرج وتوفير الأدوات المناسبة.",
-    materials: "وسائل تعليمية وأدوات بيئية مألوفة.",
-    parentTip: "الممارسة اليومية والتكرار الإيجابي."
+  const guide = SKILL_GUIDES.getGuide(goal.domainId, goal.ageIndex, goal.skillId, goal.skillText);
+  return {
+    strategy: guide.procedure,
+    materials: guide.materials,
+    parentTip: guide.tips,
+    activities: guide.activities
   };
 }
 
@@ -1569,7 +1580,8 @@ function updateReportHeader() {
   if (dateEl) dateEl.textContent = AppState.child.evalDate || "—";
 
   const specialistEl = document.getElementById('reportSpecialist');
-  if (specialistEl) specialistEl.textContent = AppState.child.specialist || "—";
+  const spec = AppState.specialists[AppState.activeSpecialistId];
+  if (specialistEl) specialistEl.textContent = spec ? `${spec.name} (${spec.title})` : (AppState.child.specialist || "—");
 }
 
 // Trigger Print Process Safely
@@ -1578,13 +1590,12 @@ function triggerPrintReport() {
   renderOfficialReport();
   switchTab('report');
   
-  // Short delay to ensure DOM and charts are fully painted before opening print dialog
   setTimeout(() => {
     window.print();
-  }, 150);
+  }, 200);
 }
 
-// Render Official Report Tab with Comprehensive Intervention & Development Plan
+// Render Official Report Tab with Harmonized Tables & 5-Step Actionable Activity Plans
 function renderOfficialReport() {
   updateReportHeader();
   const results = calculateAllResults();
@@ -1594,9 +1605,9 @@ function renderOfficialReport() {
 
   // 1. Core Summary Table
   const tableHtml = `
-    <div class="report-section" style="margin-bottom:1.5rem;">
-      <h4 style="font-size:1.05rem; font-weight:800; color:var(--primary); margin-bottom:0.6rem; border-bottom:2px solid var(--border-color); padding-bottom:0.4rem;">
-        <i class="fas fa-table text-primary"></i> 1. ملخص نتائج التقييم ومعدلات النمو والتأخر
+    <div class="report-section" style="margin-bottom:1.5rem; page-break-inside:avoid;">
+      <h4 style="font-size:1.1rem; font-weight:800; color:var(--primary); margin-bottom:0.75rem; border-bottom:2px solid var(--border-color); padding-bottom:0.4rem; display:flex; align-items:center; gap:0.5rem;">
+        <i class="fas fa-table text-primary"></i> 1. ملخص نتائج التقييم ومعدلات النمو والتأخر النمائي
       </h4>
       <div class="calc-table-container">
         <table class="calc-table">
@@ -1650,13 +1661,6 @@ function renderOfficialReport() {
 
         if (status === 'missing' || status === 'emerging' || isIepSelected) {
           const guide = SKILL_GUIDES.getGuide(domain.id, gIdx, skill.id, skill.text);
-          const trainingPlan = generateTrainingStrategy({
-            domainId: domain.id,
-            domainName: domain.name,
-            ageLabel: group.ageLabel,
-            skillText: skill.text,
-            status: status || 'missing'
-          });
 
           deficitSkills.push({
             key: skillKey,
@@ -1672,8 +1676,7 @@ function renderOfficialReport() {
             statusLabel: status === 'emerging' ? 'في طور البزوغ (±)' : 'غير مكتسبة (-)',
             priority: status === 'emerging' ? 'أولوية قصوى (بزوغ سريع)' : (gIdx <= 2 ? 'أولوية أساسية (قاعدة نمائية)' : 'أولوية تطويرية'),
             isIepSelected: isIepSelected,
-            guide: guide,
-            plan: trainingPlan
+            guide: guide
           });
         }
       });
@@ -1691,9 +1694,9 @@ function renderOfficialReport() {
 
   // 3. Domain Deficit Analysis Summary
   const domainDeficitAnalysisHtml = `
-    <div class="report-section" style="margin-top:1.75rem; margin-bottom:1.5rem;">
-      <h4 style="font-size:1.05rem; font-weight:800; color:var(--primary); margin-bottom:0.6rem; border-bottom:2px solid var(--border-color); padding-bottom:0.4rem;">
-        <i class="fas fa-search-plus text-primary"></i> 2. تحليل وتشخيص جوانب القصور والفجوات النمائية
+    <div class="report-section" style="margin-top:1.75rem; margin-bottom:1.5rem; page-break-inside:avoid;">
+      <h4 style="font-size:1.1rem; font-weight:800; color:var(--primary); margin-bottom:0.75rem; border-bottom:2px solid var(--border-color); padding-bottom:0.4rem; display:flex; align-items:center; gap:0.5rem;">
+        <i class="fas fa-search-plus text-primary"></i> 2. تحليل وتشخيص محاور النمو والفجوات النمائية
       </h4>
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:0.75rem; margin-top:0.5rem;">
         ${results.domains.map(d => {
@@ -1702,14 +1705,14 @@ function renderOfficialReport() {
           const missingCount = domainDeficits.filter(s => s.status === 'missing').length;
 
           return `
-            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-right:4px solid ${d.color}; border-radius:6px; padding:0.75rem 0.9rem; font-size:0.85rem;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
-                <strong style="color:#0f172a; font-size:0.92rem;"><i class="fas fa-${d.icon}" style="color:${d.color}"></i> ${d.name}</strong>
+            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-right:4px solid ${d.color}; border-radius:6px; padding:0.85rem 1rem; font-size:0.86rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                <strong style="color:#0f172a; font-size:0.95rem;"><i class="fas fa-${d.icon}" style="color:${d.color}"></i> ${d.name}</strong>
                 <span class="delay-badge ${d.delayClass}" style="font-size:0.75rem; padding:0.15rem 0.5rem;">${d.delayClassification}</span>
               </div>
-              <div style="color:#475569; line-height:1.5;">
-                <div>الفارق النمائي: <strong>${d.gapMonths > 0 ? '-' + d.gapMonths + ' شهر' : 'متوافق مع العمر'}</strong></div>
-                <div>المهارات قيد البزوغ: <strong style="color:var(--warning);">${emergingCount}</strong> | المهارات المفقودة: <strong style="color:var(--danger);">${missingCount}</strong></div>
+              <div style="color:#475569; line-height:1.6;">
+                <div>العمر التطوري: <strong>${d.devAgeMonths} شهر</strong> | الفارق النمائي: <strong>${d.gapMonths > 0 ? '-' + d.gapMonths + ' شهر' : 'متوافق'}</strong></div>
+                <div>المهارات في طور البزوغ: <strong style="color:var(--warning);">${emergingCount}</strong> | المهارات غير المكتسبة: <strong style="color:var(--danger);">${missingCount}</strong></div>
               </div>
             </div>
           `;
@@ -1718,65 +1721,84 @@ function renderOfficialReport() {
     </div>
   `;
 
-  // 4. Comprehensive Actionable Intervention Plan (جوانب النقص وكيف نحلها بالتفصيل)
+  // 4. Comprehensive Actionable Intervention Plan (5 Detailed Activities per Skill)
   let detailedInterventionHtml = '';
   if (deficitSkills.length > 0) {
     detailedInterventionHtml = `
       <div class="report-section" style="margin-top:2rem; margin-bottom:1.5rem;">
-        <h4 style="font-size:1.05rem; font-weight:800; color:var(--primary); margin-bottom:0.4rem; border-bottom:2px solid var(--border-color); padding-bottom:0.4rem;">
-          <i class="fas fa-clipboard-check text-primary"></i> 3. خطة التطوير والتدخل الإجرائية المتكاملة (جوانب النقص وحلولها التطبيقية)
+        <h4 style="font-size:1.1rem; font-weight:800; color:var(--primary); margin-bottom:0.4rem; border-bottom:2px solid var(--border-color); padding-bottom:0.4rem; display:flex; align-items:center; gap:0.5rem;">
+          <i class="fas fa-clipboard-check text-primary"></i> 3. خطة التدخل الإجرائية المتكاملة (5 أنشطة عملية متدرجة لكل مهارة مستهدفة)
         </h4>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
-          جدول الأهداف السلوكية وخطط التدريب الميداني والمنزلي المصممة خصيصاً لسد الفجوات النمائية المحددة للطفل:
+        <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom:1.25rem;">
+          تتضمن الخطة <strong>5 أنشطة تطبيقية لكل مهارة</strong> موزعة على: (1. النمذجة والمحاكاة، 2. تحليل المهمة واللعب، 3. التثبيت والتعميم، 4. الروتين المنزلي، 5. الاستقلالية والتعزيز):
         </p>
 
-        <div style="display:flex; flex-direction:column; gap:1rem;">
-          ${deficitSkills.slice(0, 15).map((skill, index) => `
-            <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:0.9rem 1.1rem; border-right:5px solid ${skill.domainColor}; page-break-inside:avoid; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.4rem;">
-                <div style="display:flex; align-items:center; gap:0.5rem;">
-                  <span style="background:${skill.domainColor}; color:#fff; font-size:0.75rem; font-weight:700; padding:0.15rem 0.6rem; border-radius:4px;">
-                    ${index + 1}. ${skill.domainName}
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+          ${deficitSkills.slice(0, 10).map((skill, index) => `
+            <div class="skill-intervention-card" style="border-right: 5px solid ${skill.domainColor};">
+              <div class="skill-intervention-header">
+                <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                  <span style="background:${skill.domainColor}; color:#fff; font-size:0.78rem; font-weight:800; padding:0.2rem 0.65rem; border-radius:4px;">
+                    <i class="fas fa-${skill.domainIcon}"></i> ${index + 1}. ${skill.domainName}
                   </span>
-                  <span style="font-size:0.8rem; color:#64748b; font-weight:600;">[${skill.ageLabel} - بند ${skill.skillId}]</span>
+                  <span style="font-size:0.82rem; color:var(--text-muted); font-weight:700;">[${skill.ageLabel} - بند رقم ${skill.skillId}]</span>
                 </div>
                 <div style="display:flex; gap:0.4rem;">
-                  <span class="badge ${skill.status === 'emerging' ? 'badge-info' : 'badge-ftda'}" style="font-size:0.72rem; padding:0.15rem 0.5rem;">
-                    ${skill.priority}
-                  </span>
-                  <span style="font-size:0.72rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:999px; background:${skill.status === 'emerging' ? 'var(--warning-bg)' : 'var(--danger-bg)'}; color:${skill.status === 'emerging' ? 'var(--warning)' : 'var(--danger)'}; border:1px solid ${skill.status === 'emerging' ? 'var(--warning-border)' : 'var(--danger-border)'};">
-                    الحالة: ${skill.statusLabel}
+                  <span class="badge ${skill.status === 'emerging' ? 'badge-info' : 'badge-ftda'}">${skill.priority}</span>
+                  <span style="font-size:0.75rem; font-weight:700; padding:0.15rem 0.55rem; border-radius:999px; background:${skill.status === 'emerging' ? 'var(--warning-bg)' : 'var(--danger-bg)'}; color:${skill.status === 'emerging' ? 'var(--warning)' : 'var(--danger)'}; border:1px solid ${skill.status === 'emerging' ? 'var(--warning-border)' : 'var(--danger-border)'};">
+                    ${skill.statusLabel}
                   </span>
                 </div>
               </div>
 
-              <h5 style="font-size:0.95rem; font-weight:800; color:#0f172a; margin-bottom:0.6rem; line-height:1.4;">
+              <h4 style="font-size:1.02rem; font-weight:800; color:var(--text-main); margin-bottom:0.75rem; line-height:1.4;">
                 🎯 المهارة المستهدفة: ${skill.skillText}
-              </h5>
+              </h4>
 
-              <!-- Strategy Grid: How to solve it -->
-              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:0.6rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem; font-size:0.82rem; line-height:1.5;">
-                <div>
-                  <strong style="color:var(--primary);"><i class="fas fa-cogs"></i> استراتيجية التدريب الإجرائية (كيف نحلها):</strong>
-                  <p style="margin-top:0.2rem; color:#334155;">${skill.plan.strategy}</p>
-                </div>
-                <div>
-                  <strong style="color:var(--primary);"><i class="fas fa-tools"></i> الأدوات والوسائل المعينة المقترحة:</strong>
-                  <p style="margin-top:0.2rem; color:#334155;">${skill.plan.materials}</p>
-                </div>
-                <div>
-                  <strong style="color:var(--primary);"><i class="fas fa-home"></i> برنامج التدريب المنزلي للأسرة:</strong>
-                  <p style="margin-top:0.2rem; color:#334155;">${skill.plan.parentTip}</p>
-                </div>
-                <div>
-                  <strong style="color:var(--primary);"><i class="fas fa-check-double"></i> معيار الإتقان والتقييم:</strong>
-                  <p style="margin-top:0.2rem; color:#334155;">${skill.guide.criteria.acquired}</p>
-                </div>
+              <!-- 5 Actionable Step-by-Step Activities -->
+              <div class="activities-grid">
+                ${skill.guide.activities.map(act => `
+                  <div class="activity-card">
+                    <div class="activity-card-header">
+                      <div class="activity-card-title">
+                        <i class="fas fa-${act.icon}" style="color:${skill.domainColor};"></i>
+                        <span>${act.number}. ${act.title}</span>
+                      </div>
+                      <span class="activity-tag">${act.type}</span>
+                    </div>
+                    
+                    <div class="activity-objective-box">
+                      <strong>الهدف الإجرائي:</strong> ${act.objective}
+                    </div>
+
+                    <div style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-top:0.35rem;">
+                      <i class="fas fa-list-ol" style="color:var(--primary);"></i> خطوات التنفيذ المتدرجة:
+                    </div>
+                    <ol class="activity-steps-list">
+                      ${act.steps.map(s => `<li>${s}</li>`).join('')}
+                    </ol>
+
+                    <div class="activity-meta-grid">
+                      <div class="activity-meta-item">
+                        <i class="fas fa-tools text-primary"></i>
+                        <div><strong>الأدوات:</strong> ${act.tools}</div>
+                      </div>
+                      <div class="activity-meta-item">
+                        <i class="fas fa-home text-primary"></i>
+                        <div><strong>التطبيق المنزلي والأسري:</strong> ${act.homeIntegration}</div>
+                      </div>
+                      <div class="activity-meta-item" style="grid-column: 1 / -1;">
+                        <i class="fas fa-check-circle" style="color:var(--success);"></i>
+                        <div><strong>معيار الإتقان والنجاح:</strong> ${act.mastery}</div>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
             </div>
           `).join('')}
         </div>
-        ${deficitSkills.length > 15 ? `<p style="text-align:center; font-size:0.8rem; color:#64748b; margin-top:0.75rem;">(تم استعراض أول 15 مهارة ذات أولوية قصوى من إجمالي ${deficitSkills.length} مهارة مستهدفة للتطوير)</p>` : ''}
+        ${deficitSkills.length > 10 ? `<p style="text-align:center; font-size:0.85rem; color:var(--text-muted); margin-top:1rem;">(تم استعراض تفاصيل الأنشطة الـ 5 لأول 10 مهارات ذات أولوية من إجمالي ${deficitSkills.length} مهارة مستهدفة)</p>` : ''}
       </div>
     `;
   } else {
@@ -1792,15 +1814,15 @@ function renderOfficialReport() {
   // 5. General Recommendations & Periodic Monitoring Protocol
   const recommendationsHtml = `
     <div class="report-section" style="margin-top:2rem; page-break-inside:avoid;">
-      <h4 style="font-size:1.05rem; font-weight:800; color:var(--primary); margin-bottom:0.6rem; border-bottom:2px solid var(--border-color); padding-bottom:0.4rem;">
-        <i class="fas fa-tasks text-primary"></i> 4. التوصيات العامة وبروتوكول المتابعة الدورية
+      <h4 style="font-size:1.1rem; font-weight:800; color:var(--primary); margin-bottom:0.75rem; border-bottom:2px solid var(--border-color); padding-bottom:0.4rem; display:flex; align-items:center; gap:0.5rem;">
+        <i class="fas fa-tasks text-primary"></i> 4. التوصيات الإكلينيكية وبروتوكول المتابعة الدورية
       </h4>
-      <div style="font-size:0.88rem; line-height:1.7; color:#334155;">
+      <div style="font-size:0.9rem; line-height:1.75; color:var(--text-main);">
         <ul style="padding-right:1.25rem;">
-          <li><strong>التنفيذ المتسلسل:</strong> البدء فوراً بالمهارات في طور البزوغ (±) لتحقيق نجاحات سريعة تعزز دافعية الطفل، تليها المهارات التأسيسية.</li>
-          <li><strong>تحليل المهمة والنمذجة:</strong> تجزئة المهارات المعقدة إلى خطوات مصغرة قابلة للإنجاز مع تقديم الدعم الجسدي والإيمائي ثم سحبه تدريجياً (Prompt Fading).</li>
-          <li><strong>الشراكة الأسرية:</strong> تطبيق أنشطة التدريب المنزلي بشكل يومي في مواقف الحياة الطبيعية غير المصطنعة مع الاحتفال بكل إنجاز ومكافأته فورياً.</li>
-          <li><strong>إعادة التقييم والمتابعة:</strong> يوصى بإجراء جلسة تقييم نمائي بعد <strong>3 أشهر</strong> لقياس معدل التحسن ومراجعة الأهداف الفردية (IEP).</li>
+          <li><strong>التنفيذ المتسلسل:</strong> البدء فوراً بالمهارات في طور البزوغ (±) لتحقيق نجاحات سريعة تعزز دافعية الطفل وثقته بنفسه.</li>
+          <li><strong>تحليل المهمة والنمذجة:</strong> تطبيق الأنشطة الـ 5 لكل مهارة بالترتيب، مع خفض المساعدة التدريجي (Prompt Fading) من المساعدة الجسدية إلى التوجيه الإيمائي ثم الاستقلالية.</li>
+          <li><strong>الشراكة الأسرية والروتين المنزلي:</strong> استمرار تدريب الأسرة في مواقف الحياة اليومية الطبيعية مع تطبيق نظام التعزيز الإيجابي الفوري وتوثيق التقدم في جدول النجوم.</li>
+          <li><strong>إعادة التقييم والمتابعة:</strong> يوصى بإجراء جلسة تقييم نمائي بعد <strong>3 أشهر</strong> لمراجعة نسب التطور ومتابعة المنحنى البياني للأهداف المكتسبة.</li>
         </ul>
       </div>
     </div>
