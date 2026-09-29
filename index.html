@@ -462,7 +462,10 @@
               جاري تحليل المهارات المفقودة واستخراج خطة التدخل...
             </p>
           </div>
-          <div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button class="btn btn-outline" onclick="exportIEPPlanJSON()">
+              <i class="fas fa-file-code"></i> تصدير ملف الخطة (JSON)
+            </button>
             <button class="btn btn-primary" onclick="switchTab('report')">
               <i class="fas fa-print"></i> معاينة التقرير النهائي والخطة
             </button>
@@ -517,10 +520,16 @@
             </div>
           </div>
 
-          <!-- Print Trigger Button -->
-          <div style="margin-top:2rem; text-align:center;" class="btn-no-print">
+          <!-- Action Buttons (Print & JSON Exports) -->
+          <div style="margin-top:2rem; display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;" class="btn-no-print">
             <button class="btn btn-primary btn-lg" onclick="triggerPrintReport()">
               <i class="fas fa-print"></i> طباعة هذا التقرير رسمياً (A4)
+            </button>
+            <button class="btn btn-outline btn-lg" onclick="exportAssessmentReportJSON()">
+              <i class="fas fa-file-code"></i> تصدير ملف التقرير (JSON)
+            </button>
+            <button class="btn btn-outline btn-lg" onclick="exportIEPPlanJSON()">
+              <i class="fas fa-tasks"></i> تصدير ملف الخطة والأنشطة (JSON)
             </button>
           </div>
         </div>

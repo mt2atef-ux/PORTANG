@@ -1924,7 +1924,171 @@ function loadSavedState() {
   }
 }
 
-// Export Complete Database JSON
+// ==========================================================
+// DEDICATED JSON EXPORT ENGINES (REPORT & IEP PLAN)
+// ==========================================================
+
+// 1. Export Diagnostic Assessment Report JSON
+function exportAssessmentReportJSON() {
+  saveCurrentSpecialistStore();
+  const currentSpec = AppState.specialists[AppState.activeSpecialistId] || {};
+  const results = calculateAllResults();
+
+  const reportPayload = {
+    meta: {
+      documentType: "Portage Comprehensive Developmental Evaluation Report",
+      documentTypeAr: "تقرير التقييم النمائي الشامل - مقياس بورتيدج للتعليم المبكر",
+      system: "Portage Assessment & IEP Portal",
+      version: "3.0",
+      exportDate: new Date().toISOString(),
+      accreditation: "مؤسسة أكاديمية التدريب والتنمية (FTDA) - إعداد: م. إيمان أبواليزيد"
+    },
+    child: {
+      id: AppState.child.id,
+      name: AppState.child.name || "طفل",
+      dob: AppState.child.dob || "",
+      chronologicalAgeMonths: AppState.child.chronologicalAgeMonths || 0,
+      chronologicalAgeFormatted: AppState.child.chronologicalAgeFormatted || "",
+      gender: AppState.child.gender === 'female' ? 'أنثى' : 'ذكر',
+      evaluationDate: AppState.child.evalDate || "",
+      notes: AppState.child.notes || ""
+    },
+    specialist: {
+      id: currentSpec.id || "",
+      name: currentSpec.name || AppState.child.specialist || "",
+      title: currentSpec.title || "",
+      center: currentSpec.center || "",
+      phone: currentSpec.phone || ""
+    },
+    resultsSummary: {
+      overallDevelopmentalAgeMonths: results.overallDevAgeMonths,
+      overallDevelopmentalAgeFormatted: formatMonthsToYears(results.overallDevAgeMonths),
+      overallChronologicalAgeMonths: results.overallChronologicalAgeMonths,
+      overallDevelopmentalQuotient: results.overallDevelopmentalQuotient,
+      overallClassification: results.overallDevelopmentalQuotient >= 85 ? "ضمن المتوسط الطبيعي" : "بحاجة لبرنامج تدخل نمائي مكثف",
+      totalSkillsAcquired: results.totalSkillsAcquired,
+      totalSkillsEvaluated: results.totalSkillsCount
+    },
+    domainsAnalysis: results.domains.map(d => ({
+      domainId: d.id,
+      domainName: d.name,
+      developmentalAgeMonths: d.devAgeMonths,
+      developmentalAgeFormatted: d.devAgeFormatted,
+      chronologicalAgeMonths: results.overallChronologicalAgeMonths,
+      acquiredSkillsCount: d.acquired,
+      totalSkillsCount: d.total,
+      developmentalQuotient: d.dq,
+      delayClassification: d.delayClassification,
+      delayGapMonths: d.gapMonths
+    })),
+    recommendations: [
+      "البدء فوراً بالمهارات في طور البزوغ (±) لتحقيق نجاحات سريعة تعزز دافعية الطفل.",
+      "تطبيق أنشطة التدريب المنزلي الخمسة لكل مهارة مستهدفة في مواقف الحياة اليومية الطبيعية.",
+      "تطبيق أسلوب خفض المساعدة التدريجي (Prompt Fading) من المساعدة الجسدية إلى التوجيه الإيمائي.",
+      "إعادة التقييم النمائي بعد 3 أشهر لمتابعة المنحنى التطوري وتحديث الأهداف."
+    ]
+  };
+
+  const blob = new Blob([JSON.stringify(reportPayload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const fileName = `تقرير_بورتيدج_${(AppState.child.name || 'طفل').replace(/\s+/g, '_')}_${AppState.child.evalDate || '2026'}.json`;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 2. Export Individualized Educational Plan (IEP) JSON with 5-Step Activities
+function exportIEPPlanJSON() {
+  saveCurrentSpecialistStore();
+  const currentSpec = AppState.specialists[AppState.activeSpecialistId] || {};
+  
+  const targetGoals = [];
+  PORTAGE_DATA.domains.forEach(domain => {
+    domain.ageGroups.forEach((group, gIdx) => {
+      group.skills.forEach(skill => {
+        const skillKey = `${domain.id}_${gIdx}_${skill.id}`;
+        const status = AppState.evaluations[skillKey];
+        const isSelected = AppState.iepSelectedGoals.has(skillKey);
+
+        if (status === 'missing' || status === 'emerging' || isSelected) {
+          const guide = SKILL_GUIDES.getGuide(domain.id, gIdx, skill.id, skill.text);
+
+          targetGoals.push({
+            skillKey: skillKey,
+            domainId: domain.id,
+            domainName: domain.name,
+            ageLabel: group.ageLabel,
+            ageIndex: gIdx,
+            skillId: skill.id,
+            skillText: skill.text,
+            status: status || 'missing',
+            statusLabel: status === 'emerging' ? 'في طور البزوغ (±)' : 'غير مكتسبة (-)',
+            priority: status === 'emerging' ? 'أولوية فورية (بزوغ سريع)' : (gIdx <= 2 ? 'أولوية أساسية (قاعدة نمائية)' : 'أولوية تطويرية'),
+            isApprovedInOfficialPlan: isSelected,
+            behaviouralObjective: guide.objective,
+            materialsNeeded: guide.materials,
+            familyTips: guide.tips,
+            concreteActivities: guide.activities
+          });
+        }
+      });
+    });
+  });
+
+  // Sort goals
+  targetGoals.sort((a, b) => {
+    if (a.isApprovedInOfficialPlan && !b.isApprovedInOfficialPlan) return -1;
+    if (b.isApprovedInOfficialPlan && !a.isApprovedInOfficialPlan) return 1;
+    if (a.status === 'emerging' && b.status !== 'emerging') return -1;
+    if (b.status === 'emerging' && a.status !== 'emerging') return 1;
+    return a.ageIndex - b.ageIndex;
+  });
+
+  const iepPayload = {
+    meta: {
+      documentType: "Portage Individualized Educational & Remedial Plan (IEP)",
+      documentTypeAr: "البرنامج التربوي الفردي وخطة التدخل وتنمية المهارات - مقياس بورتيدج",
+      system: "Portage Assessment & IEP Portal",
+      version: "3.0",
+      exportDate: new Date().toISOString(),
+      accreditation: "مؤسسة أكاديمية التدريب والتنمية (FTDA) - إعداد: م. إيمان أبواليزيد"
+    },
+    child: {
+      id: AppState.child.id,
+      name: AppState.child.name || "طفل",
+      dob: AppState.child.dob || "",
+      chronologicalAgeFormatted: AppState.child.chronologicalAgeFormatted || "",
+      evaluationDate: AppState.child.evalDate || "",
+      notes: AppState.child.notes || ""
+    },
+    specialist: {
+      name: currentSpec.name || AppState.child.specialist || "",
+      title: currentSpec.title || "",
+      center: currentSpec.center || "",
+      phone: currentSpec.phone || ""
+    },
+    planStatistics: {
+      totalDeficitSkillsIdentified: targetGoals.length,
+      approvedOfficialGoalsCount: targetGoals.filter(g => g.isApprovedInOfficialPlan).length,
+      activitiesPerSkillCount: 5,
+      totalGeneratedActivitiesCount: targetGoals.length * 5
+    },
+    individualizedGoals: targetGoals
+  };
+
+  const blob = new Blob([JSON.stringify(iepPayload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const fileName = `خطة_بورتيدج_العلاجية_${(AppState.child.name || 'طفل').replace(/\s+/g, '_')}_${AppState.child.evalDate || '2026'}.json`;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 3. Export Complete Database Backup JSON
 function exportAssessmentJSON() {
   saveCurrentSpecialistStore();
   const currentSpec = AppState.specialists[AppState.activeSpecialistId] || {};
