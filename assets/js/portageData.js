@@ -15,7 +15,7 @@ const PORTAGE_DATA = {
       id: "social",
       name: "التنشئة الاجتماعية",
       icon: "users",
-      color: "#3B82F6",
+      color: "#2563eb",
       denominators: [28, 15, 8, 12, 9, 11],
       ageGroups: [
         {
@@ -161,7 +161,7 @@ const PORTAGE_DATA = {
       id: "language",
       name: "النمو اللغوي",
       icon: "message-circle",
-      color: "#10B981",
+      color: "#059669",
       denominators: [10, 18, 30, 12, 15, 14],
       ageGroups: [
         {
@@ -323,7 +323,7 @@ const PORTAGE_DATA = {
       id: "selfHelp",
       name: "المساعدة الذاتية",
       icon: "heart",
-      color: "#F59E0B",
+      color: "#d97706",
       denominators: [12, 13, 27, 15, 23, 15],
       ageGroups: [
         {
@@ -491,7 +491,7 @@ const PORTAGE_DATA = {
       id: "cognitive",
       name: "النمو المعرفي (الإدراك)",
       icon: "brain",
-      color: "#8B5CF6",
+      color: "#7c3aed",
       denominators: [14, 10, 16, 24, 22, 22],
       ageGroups: [
         {
@@ -662,7 +662,7 @@ const PORTAGE_DATA = {
       id: "motor",
       name: "النمو الحركي",
       icon: "activity",
-      color: "#EF4444",
+      color: "#e11d48",
       denominators: [45, 18, 17, 15, 16, 29],
       ageGroups: [
         {
@@ -865,7 +865,7 @@ const PORTAGE_DATA = {
       id: "infant",
       name: "قسم الرضيع",
       icon: "baby",
-      color: "#EC4899",
+      color: "#db2777",
       denominators: [45],
       ageGroups: [
         {
