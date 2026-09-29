@@ -1643,42 +1643,179 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* Print Stylesheet */
+/* ==========================================================
+   OFFICIAL PRINT STYLESHEET (A4 PORTRAIT)
+   ========================================================== */
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
-    font-size: 12pt;
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
   }
 
-  .navbar, .app-hero, .tabs-navigation, .assessment-toolbar, .quick-actions, 
-  .btn, .footer, .domain-selector, .domain-card-btn, .modal-backdrop, .btn-no-print {
+  *, *::before, *::after {
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    line-height: 1.5 !important;
+    font-family: 'Cairo', 'Tajawal', sans-serif !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    direction: rtl !important;
+    text-align: right !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Completely hide all interactive UI & non-report tabs */
+  .navbar, 
+  .app-hero, 
+  .tabs-navigation, 
+  .assessment-toolbar, 
+  .quick-actions, 
+  .btn, 
+  .footer, 
+  .domain-selector, 
+  .domain-card-btn, 
+  .modal-backdrop, 
+  .btn-no-print,
+  #tab-intake,
+  #tab-assessment,
+  #tab-results,
+  #tab-history,
+  #tab-iep {
     display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
   }
 
-  .tab-view {
+  .app-container {
     display: block !important;
+    min-height: auto !important;
   }
 
   .main-wrapper {
-    padding: 0;
-    max-width: 100%;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
   }
 
-  .card {
-    border: 1px solid #ccc !important;
+  /* Show ONLY the official report tab */
+  #tab-report {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #printableReportCard {
+    display: block !important;
+    background: #ffffff !important;
+    border: none !important;
     box-shadow: none !important;
-    break-inside: avoid;
-    background: white !important;
-    margin-bottom: 1rem;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
   }
 
-  .print-page-break {
-    page-break-before: always;
+  .official-report-header {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 2.5px solid #4f46e5 !important;
+    padding-bottom: 0.75rem !important;
+    margin-bottom: 1.25rem !important;
   }
 
-  .chart-wrapper {
-    height: 250px !important;
+  .report-logo-text h2 {
+    font-size: 1.35rem !important;
+    font-weight: 800 !important;
+    color: #1e1b4b !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .report-logo-text p {
+    font-size: 0.85rem !important;
+    color: #475569 !important;
+  }
+
+  .badge-ftda {
+    border: 1px solid #4f46e5 !important;
+    color: #4f46e5 !important;
+    font-weight: 700 !important;
+    padding: 0.35rem 0.75rem !important;
+  }
+
+  .report-profile-box {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.6rem !important;
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    padding: 0.85rem 1rem !important;
+    margin-bottom: 1.25rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .report-profile-box div {
+    color: #0f172a !important;
+  }
+
+  .calc-table-container {
+    overflow: visible !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .calc-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 0.88rem !important;
+  }
+
+  .calc-table th, .calc-table td {
+    border: 1px solid #94a3b8 !important;
+    padding: 0.45rem 0.65rem !important;
+    color: #0f172a !important;
+    text-align: right !important;
+  }
+
+  .calc-table thead tr {
+    background-color: #f1f5f9 !important;
+    font-weight: 800 !important;
+  }
+
+  .calc-table tbody tr {
+    page-break-inside: avoid !important;
+  }
+
+  .report-signatures-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem !important;
+    margin-top: 2rem !important;
+    padding-top: 1rem !important;
+    border-top: 1px solid #cbd5e1 !important;
+    page-break-inside: avoid !important;
+  }
+
+  .report-signatures-grid .sig-col {
+    background: transparent !important;
+    border: 1px dashed #94a3b8 !important;
+    padding: 0.75rem !important;
+    text-align: center !important;
   }
 }
 

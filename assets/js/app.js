@@ -127,7 +127,7 @@ function initEventListeners() {
   document.getElementById('btnSaveCurrentSession')?.addEventListener('click', saveCurrentSessionToHistory);
 
   // Export / Import / Print
-  document.getElementById('btnPrintReport')?.addEventListener('click', () => window.print());
+  document.getElementById('btnPrintReport')?.addEventListener('click', triggerPrintReport);
   document.getElementById('btnExportJson')?.addEventListener('click', exportAssessmentJSON);
   document.getElementById('btnImportJson')?.addEventListener('click', () => document.getElementById('importFileInput').click());
   document.getElementById('importFileInput')?.addEventListener('change', importAssessmentJSON);
@@ -1240,6 +1240,18 @@ function updateReportHeader() {
   if (specialistEl) specialistEl.textContent = AppState.child.specialist || "—";
 }
 
+// Trigger Print Process Safely
+function triggerPrintReport() {
+  calculateAllResults();
+  renderOfficialReport();
+  switchTab('report');
+  
+  // Short delay to ensure DOM and charts are fully painted before opening print dialog
+  setTimeout(() => {
+    window.print();
+  }, 150);
+}
+
 // Render Official Report Tab
 function renderOfficialReport() {
   updateReportHeader();
@@ -1250,9 +1262,9 @@ function renderOfficialReport() {
 
   const tableHtml = `
     <div class="calc-table-container">
-      <table class="calc-table" style="border: 1px solid #ccc;">
+      <table class="calc-table">
         <thead>
-          <tr style="background:#f1f5f9;">
+          <tr>
             <th>المجال النمائي</th>
             <th>العمر التطوري (شهور)</th>
             <th>العمر الزمني (شهور)</th>
@@ -1268,7 +1280,7 @@ function renderOfficialReport() {
               <td>${d.devAgeMonths} شهر (${d.devAgeFormatted})</td>
               <td>${AppState.child.chronologicalAgeMonths || '—'} شهر</td>
               <td>${d.acquired} / ${d.total} بند</td>
-              <td>${d.dq}%</td>
+              <td><strong>${d.dq}%</strong></td>
               <td>${d.delayClassification} (${d.gapMonths > 0 ? '-' + d.gapMonths + ' شهر' : '+' + Math.abs(d.gapMonths) + ' شهر'})</td>
             </tr>
           `).join('')}
