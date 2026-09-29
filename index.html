@@ -58,8 +58,15 @@
             </button>
           </div>
 
+          <button class="btn btn-outline btn-xs" id="btnOpenAuthModal" title="تسجيل الدخول بالبريد أو الجوال برمز التحقق">
+            <i class="fas fa-right-to-bracket"></i> تسجيل الدخول (OTP)
+          </button>
+          <button class="btn btn-primary btn-xs" id="btnOpenShareLinksModal" title="روابط الدخول والمشاركة للأخصائي وولي الأمر">
+            <i class="fas fa-link"></i> روابط الدخول
+          </button>
+
           <button class="btn btn-secondary btn-xs" id="btnLoadDemoData" title="تحميل نموذج تجريبي للأخصائي">
-            <i class="fas fa-magic"></i> بيانات تجريبية
+            <i class="fas fa-magic"></i> تجريبي
           </button>
           <button class="btn btn-secondary btn-xs" id="btnImportJson" title="استيراد قاعدة بيانات / ملف تقييم">
             <i class="fas fa-file-import"></i> استيراد
@@ -81,6 +88,25 @@
     <!-- Main Wrapper -->
     <main class="main-wrapper">
       
+      <!-- Parent / Child Portal Welcome Banner (Shown when role is parent) -->
+      <div id="parentPortalBanner" class="parent-portal-banner" style="display:none;">
+        <div class="parent-portal-info">
+          <h3><i class="fas fa-house-chimney-user text-primary"></i> بوابة ولي الأمر لمتابعة الطفل: <span id="parentPortalChildNameDisplay" style="color:var(--primary);"></span></h3>
+          <p>مرحباً بكم. يمكنكم هنا الاطلاع على نتائج التقييم النمائي، ممارسة الأنشطة المنزلية الـ 5 المخصصة لطفلكم، وتحميل التقارير الرسمية.</p>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button class="btn btn-primary btn-xs" onclick="switchTab('iep')">
+            <i class="fas fa-tasks"></i> خطة الأنشطة المنزلية (5 أنشطة)
+          </button>
+          <button class="btn btn-secondary btn-xs" onclick="switchTab('report')">
+            <i class="fas fa-file-medical"></i> استعراض التقرير المعتمد
+          </button>
+          <button class="btn btn-outline btn-xs" onclick="switchToSpecialistMode()">
+            <i class="fas fa-user-doctor"></i> العودة لوضع الأخصائي
+          </button>
+        </div>
+      </div>
+
       <!-- Hero Banner -->
       <section class="app-hero">
         <div class="hero-glow"></div>
@@ -723,6 +749,173 @@
             <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> إنشاء الملف وبدء التقييم</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Modal 4: Authentication & OTP Login Portal -->
+    <div class="modal-backdrop" id="authModal">
+      <div class="modal-card modal-card-sm">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1.25rem;">
+          <h3 style="font-size:1.15rem;"><i class="fas fa-shield-halved text-primary"></i> تسجيل الدخول برمز التحقق (OTP)</h3>
+          <button class="btn btn-icon btn-outline" onclick="closeModal('authModal')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Role Toggle Pills -->
+        <div class="role-toggle-pills">
+          <button type="button" class="role-pill-btn active" id="authRoleSpecialistBtn" onclick="switchAuthModalRole('specialist')">
+            <i class="fas fa-user-doctor"></i> حساب الأخصائي
+          </button>
+          <button type="button" class="role-pill-btn" id="authRoleParentBtn" onclick="switchAuthModalRole('parent')">
+            <i class="fas fa-hands-holding-child"></i> ولي الأمر / الطفل
+          </button>
+        </div>
+
+        <!-- Step 1: Identifier Input Form -->
+        <form id="authIdentifierForm" onsubmit="event.preventDefault(); handleSendOtpRequest();">
+          <div style="display:flex; flex-direction:column; gap:1rem;">
+            <div id="authSpecialistInputs">
+              <div class="form-group">
+                <label class="form-label" for="authIdentifierInput">
+                  <i class="fas fa-envelope"></i> البريد الإلكتروني أو رقم الجوال للأخصائي <span class="req">*</span>
+                </label>
+                <input type="text" id="authIdentifierInput" class="form-input" placeholder="مثال: mona@portage.org أو 01012345678" required>
+              </div>
+            </div>
+
+            <div id="authParentInputs" style="display:none;">
+              <div class="form-group">
+                <label class="form-label" for="authParentIdentifierInput">
+                  <i class="fas fa-mobile-screen"></i> رقم الجوال أو البريد الإلكتروني لولي الأمر <span class="req">*</span>
+                </label>
+                <input type="text" id="authParentIdentifierInput" class="form-input" placeholder="مثال: 01198765432 أو parent@example.com">
+              </div>
+              <div class="form-group" style="margin-top:0.5rem;">
+                <label class="form-label" for="authParentSelectChild">
+                  <i class="fas fa-child"></i> أو حدد ملف الطفل المسجل مباشرة:
+                </label>
+                <select id="authParentSelectChild" class="form-select">
+                  <!-- Populated by JS -->
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btnSendOtpSubmit" style="width:100%; margin-top:0.5rem;">
+              <i class="fas fa-paper-plane"></i> إرسال رمز التحقق (OTP)
+            </button>
+          </div>
+        </form>
+
+        <!-- Step 2: OTP Entry Form (Hidden by default) -->
+        <form id="authOtpVerifyForm" style="display:none;" onsubmit="event.preventDefault(); handleVerifyOtpSubmit();">
+          <div class="otp-box-container">
+            <!-- Simulated Incoming SMS/Email Toast -->
+            <div id="simulatedOtpBanner" class="otp-notification-card">
+              <i class="fas fa-comment-sms fa-lg"></i>
+              <div>
+                <strong id="simulatedOtpChannelText">📩 رسالة التحقق الفورية:</strong>
+                <div>رمز التحقق الخاص بك لتسجيل الدخول هو: <strong id="simulatedOtpCodeDisplay" style="font-size:1.15rem; color:var(--primary); letter-spacing:2px;"></strong></div>
+              </div>
+            </div>
+
+            <p style="font-size:0.85rem; color:var(--text-muted); text-align:center;">
+              أدخل رمز التحقق المكون من 4 أرقام الذي تم إرساله إلى: <strong id="authTargetRecipientDisplay" style="color:var(--text-main);"></strong>
+            </p>
+
+            <div class="otp-inputs-wrapper">
+              <input type="text" class="otp-digit-input" id="otpDigit1" maxlength="1" required autofocus>
+              <input type="text" class="otp-digit-input" id="otpDigit2" maxlength="1" required>
+              <input type="text" class="otp-digit-input" id="otpDigit3" maxlength="1" required>
+              <input type="text" class="otp-digit-input" id="otpDigit4" maxlength="1" required>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem; color:var(--text-muted);">
+              <span id="otpTimerDisplay"><i class="fas fa-clock"></i> ينتهي الرمز خلال: <strong>60 ثانية</strong></span>
+              <button type="button" class="btn btn-xs btn-outline" onclick="handleSendOtpRequest(true)">
+                <i class="fas fa-rotate"></i> إعادة إرسال
+              </button>
+            </div>
+
+            <div class="modal-actions-row" style="margin-top:0.75rem;">
+              <button type="button" class="btn btn-secondary" onclick="resetAuthStep1()">تغيير الرقم</button>
+              <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> تأكيد وتسجيل الدخول</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal 5: Direct Access & Share Links Generator -->
+    <div class="modal-backdrop" id="shareLinksModal">
+      <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1.25rem;">
+          <h3 style="font-size:1.15rem;"><i class="fas fa-share-nodes text-primary"></i> روابط الدخول المباشرة والمشاركة الفورية</h3>
+          <button class="btn btn-icon btn-outline" onclick="closeModal('shareLinksModal')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:1.25rem;">
+          يمكنك مشاركة هذه الروابط المباشرة مع الأخصائيين أو أولياء الأمور للدخول الفوري والآمن إلى ملفاتهم وتقاريرهم:
+        </p>
+
+        <div class="share-links-list">
+          <!-- 1. Specialist Direct Link -->
+          <div class="share-link-card">
+            <div class="share-link-header">
+              <h5><i class="fas fa-user-doctor text-primary"></i> رابط دخول الأخصائي المباشر (<span id="shareSpecNameDisplay"></span>)</h5>
+              <span class="badge badge-ftda">لوحة الأخصائي</span>
+            </div>
+            <div class="share-link-input-group">
+              <input type="text" id="shareSpecLinkInput" class="form-input share-link-input" readonly>
+              <button class="btn btn-outline btn-xs" onclick="copyToClipboard('shareSpecLinkInput')">
+                <i class="fas fa-copy"></i> نسخ
+              </button>
+              <a id="shareSpecWhatsappBtn" href="#" target="_blank" class="btn btn-primary btn-xs" style="background:#25D366; border-color:#25D366;">
+                <i class="fab fa-whatsapp"></i> واتساب
+              </a>
+            </div>
+          </div>
+
+          <!-- 2. Parent / Child Direct Link -->
+          <div class="share-link-card">
+            <div class="share-link-header">
+              <h5><i class="fas fa-hands-holding-child" style="color:var(--secondary);"></i> رابط دخول ولي الأمر لمتابعة الطفل (<span id="shareChildNameDisplay"></span>)</h5>
+              <span class="badge badge-info">بوابة ولي الأمر</span>
+            </div>
+            <div class="share-link-input-group">
+              <input type="text" id="shareParentLinkInput" class="form-input share-link-input" readonly>
+              <button class="btn btn-outline btn-xs" onclick="copyToClipboard('shareParentLinkInput')">
+                <i class="fas fa-copy"></i> نسخ
+              </button>
+              <a id="shareParentWhatsappBtn" href="#" target="_blank" class="btn btn-primary btn-xs" style="background:#25D366; border-color:#25D366;">
+                <i class="fab fa-whatsapp"></i> واتساب لولي الأمر
+              </a>
+            </div>
+          </div>
+
+          <!-- 3. Direct Report Link -->
+          <div class="share-link-card">
+            <div class="share-link-header">
+              <h5><i class="fas fa-file-medical text-primary"></i> رابط التقرير النمائي الشامل المعتمد</h5>
+              <span class="badge badge-success">تقرير رسمي A4</span>
+            </div>
+            <div class="share-link-input-group">
+              <input type="text" id="shareReportLinkInput" class="form-input share-link-input" readonly>
+              <button class="btn btn-outline btn-xs" onclick="copyToClipboard('shareReportLinkInput')">
+                <i class="fas fa-copy"></i> نسخ
+              </button>
+              <a id="shareReportWhatsappBtn" href="#" target="_blank" class="btn btn-primary btn-xs" style="background:#25D366; border-color:#25D366;">
+                <i class="fab fa-whatsapp"></i> مشاركة التقرير
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer-row" style="margin-top:1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('shareLinksModal')">إغلاق</button>
+        </div>
       </div>
     </div>
 

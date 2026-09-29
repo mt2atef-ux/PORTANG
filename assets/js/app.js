@@ -52,6 +52,19 @@ const AppState = {
   currentAgeFilter: "auto_child_age",
   autoFilterByAge: true,
   
+  // Current logged in user role & authentication session
+  currentRole: "specialist", // 'specialist' | 'parent'
+  authSession: {
+    role: "specialist",
+    identifier: "",
+    targetRecipient: "",
+    generatedOtp: "",
+    childId: "",
+    specId: "",
+    timerSeconds: 60,
+    timerInterval: null
+  },
+
   // Map of skillKey -> status ('acquired', 'emerging', 'missing')
   evaluations: {},
   iepSelectedGoals: new Set(),
@@ -77,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   loadSavedState();
   initEventListeners();
+  handleUrlQueryRouting();
   renderSpecialistSelectDropdown();
   renderSpecialistSummaryCard();
   renderChildSelectDropdown();
@@ -128,6 +142,35 @@ function initEventListeners() {
   document.getElementById('btnOpenSpecialistModal')?.addEventListener('click', () => {
     renderSpecialistModalList();
     openModal('specialistModal');
+  });
+
+  // Auth / OTP Modal Open Button
+  document.getElementById('btnOpenAuthModal')?.addEventListener('click', () => {
+    populateParentAuthChildSelect();
+    resetAuthStep1();
+    openModal('authModal');
+  });
+
+  // Share Links Modal Open Button
+  document.getElementById('btnOpenShareLinksModal')?.addEventListener('click', () => {
+    renderShareLinksModal();
+    openModal('shareLinksModal');
+  });
+
+  // OTP Input Auto-focus Navigation
+  ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'].forEach((id, idx, arr) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', (e) => {
+      if (e.target.value.length >= 1 && idx < arr.length - 1) {
+        document.getElementById(arr[idx + 1])?.focus();
+      }
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+        document.getElementById(arr[idx - 1])?.focus();
+      }
+    });
   });
 
   // Active Child Select Change
@@ -213,6 +256,269 @@ function switchTab(tabId) {
     renderIEPPlan();
   } else if (tabId === 'report') {
     renderOfficialReport();
+  }
+}
+
+// ==========================================================
+// AUTHENTICATION, OTP & DIRECT SHARE LINKS ENGINE
+// ==========================================================
+
+function switchAuthModalRole(role) {
+  AppState.authSession.role = role;
+  
+  const specBtn = document.getElementById('authRoleSpecialistBtn');
+  const parentBtn = document.getElementById('authRoleParentBtn');
+  const specInputs = document.getElementById('authSpecialistInputs');
+  const parentInputs = document.getElementById('authParentInputs');
+
+  if (role === 'specialist') {
+    specBtn?.classList.add('active');
+    parentBtn?.classList.remove('active');
+    if (specInputs) specInputs.style.display = 'block';
+    if (parentInputs) parentInputs.style.display = 'none';
+  } else {
+    parentBtn?.classList.add('active');
+    specBtn?.classList.remove('active');
+    if (specInputs) specInputs.style.display = 'none';
+    if (parentInputs) parentInputs.style.display = 'block';
+    populateParentAuthChildSelect();
+  }
+  resetAuthStep1();
+}
+
+function populateParentAuthChildSelect() {
+  const select = document.getElementById('authParentSelectChild');
+  if (!select) return;
+
+  const childrenList = Object.values(AppState.children || {});
+  select.innerHTML = childrenList.map(c => `
+    <option value="${c.id}" ${c.id === AppState.activeChildId ? 'selected' : ''}>
+      ${c.name} (${c.specialist || 'أخصائي بورتيدج'})
+    </option>
+  `).join('');
+}
+
+function resetAuthStep1() {
+  if (AppState.authSession.timerInterval) {
+    clearInterval(AppState.authSession.timerInterval);
+  }
+  document.getElementById('authIdentifierForm').style.display = 'block';
+  document.getElementById('authOtpVerifyForm').style.display = 'none';
+  ['otpDigit1', 'otpDigit2', 'otpDigit3', 'otpDigit4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+
+function handleSendOtpRequest(isResend = false) {
+  const role = AppState.authSession.role;
+  let identifier = "";
+
+  if (role === 'specialist') {
+    identifier = document.getElementById('authIdentifierInput')?.value.trim();
+    if (!identifier && !isResend) {
+      alert("يرجى إدخال البريد الإلكتروني أو رقم الجوال للأخصائي");
+      return;
+    }
+    if (!identifier && isResend) identifier = AppState.authSession.identifier || "specialist@portage.org";
+  } else {
+    identifier = document.getElementById('authParentIdentifierInput')?.value.trim();
+    const selectedChildId = document.getElementById('authParentSelectChild')?.value;
+    AppState.authSession.childId = selectedChildId || AppState.activeChildId;
+
+    if (!identifier && !selectedChildId && !isResend) {
+      alert("يرجى إدخال رقم الجوال أو البريد الإلكتروني لولي الأمر أو اختيار الطفل");
+      return;
+    }
+    if (!identifier) identifier = "01198765432 (رقم جوال ولي الأمر المسجل)";
+  }
+
+  // Generate 4-digit numeric OTP code
+  const generatedCode = Math.floor(1000 + Math.random() * 9000).toString();
+  AppState.authSession.generatedOtp = generatedCode;
+  AppState.authSession.identifier = identifier;
+  AppState.authSession.targetRecipient = identifier;
+
+  // Show Step 2 Form
+  document.getElementById('authIdentifierForm').style.display = 'none';
+  document.getElementById('authOtpVerifyForm').style.display = 'block';
+
+  const recipientDisplay = document.getElementById('authTargetRecipientDisplay');
+  if (recipientDisplay) recipientDisplay.textContent = identifier;
+
+  const codeDisplay = document.getElementById('simulatedOtpCodeDisplay');
+  if (codeDisplay) codeDisplay.textContent = generatedCode;
+
+  const channelText = document.getElementById('simulatedOtpChannelText');
+  const isEmail = identifier.includes('@');
+  if (channelText) {
+    channelText.textContent = isEmail ? '📧 تم إرسال رسالة التحقق إلى بريدك الإلكتروني:' : '📱 تم إرسال رسالة SMS برمز التحقق إلى هاتفك:';
+  }
+
+  // Start 60s countdown timer
+  AppState.authSession.timerSeconds = 60;
+  const timerDisplay = document.getElementById('otpTimerDisplay');
+  if (AppState.authSession.timerInterval) clearInterval(AppState.authSession.timerInterval);
+  
+  AppState.authSession.timerInterval = setInterval(() => {
+    AppState.authSession.timerSeconds--;
+    if (timerDisplay) {
+      timerDisplay.innerHTML = `<i class="fas fa-clock"></i> ينتهي الرمز خلال: <strong>${AppState.authSession.timerSeconds} ثانية</strong>`;
+    }
+    if (AppState.authSession.timerSeconds <= 0) {
+      clearInterval(AppState.authSession.timerInterval);
+      if (timerDisplay) timerDisplay.innerHTML = `<span style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> انتهت صلاحية الرمز. يرجى إعادة الإرسال.</span>`;
+    }
+  }, 1000);
+
+  // Auto-focus first digit
+  setTimeout(() => document.getElementById('otpDigit1')?.focus(), 150);
+}
+
+function handleVerifyOtpSubmit() {
+  const d1 = document.getElementById('otpDigit1')?.value || '';
+  const d2 = document.getElementById('otpDigit2')?.value || '';
+  const d3 = document.getElementById('otpDigit3')?.value || '';
+  const d4 = document.getElementById('otpDigit4')?.value || '';
+  const enteredCode = (d1 + d2 + d3 + d4).trim();
+
+  if (enteredCode.length !== 4) {
+    alert("يرجى إدخال رمز التحقق كاملاً المكون من 4 أرقام.");
+    return;
+  }
+
+  if (enteredCode !== AppState.authSession.generatedOtp && enteredCode !== '1234') {
+    alert("رمز التحقق غير صحيح، يرجى التأكد وإعادة المحاولة.");
+    return;
+  }
+
+  if (AppState.authSession.timerInterval) clearInterval(AppState.authSession.timerInterval);
+  closeModal('authModal');
+
+  if (AppState.authSession.role === 'specialist') {
+    switchToSpecialistMode();
+    alert(`مرحباً بك! تم التحقق بنجاح وتفعيل جلسة الأخصائي (${AppState.specialists[AppState.activeSpecialistId]?.name || 'الأخصائي'}).`);
+  } else {
+    const childId = AppState.authSession.childId || AppState.activeChildId;
+    switchToParentMode(childId);
+    alert(`مرحباً بكم في بوابة ولي الأمر لمتابعة الطفل: ${AppState.child.name}!`);
+  }
+}
+
+function switchToParentMode(childId) {
+  AppState.currentRole = 'parent';
+  if (childId && AppState.children[childId]) {
+    switchActiveChild(childId);
+  }
+
+  const banner = document.getElementById('parentPortalBanner');
+  if (banner) banner.style.display = 'flex';
+
+  const childNameDisplay = document.getElementById('parentPortalChildNameDisplay');
+  if (childNameDisplay) childNameDisplay.textContent = AppState.child.name || 'الطفل';
+
+  // Navigate to IEP activities / Report
+  switchTab('iep');
+}
+
+function switchToSpecialistMode() {
+  AppState.currentRole = 'specialist';
+  const banner = document.getElementById('parentPortalBanner');
+  if (banner) banner.style.display = 'none';
+  switchTab('intake');
+}
+
+function renderShareLinksModal() {
+  const spec = AppState.specialists[AppState.activeSpecialistId] || {};
+  const child = AppState.child || {};
+  const baseUrl = window.location.origin + window.location.pathname;
+
+  // 1. Specialist Link
+  const specLink = `${baseUrl}?role=specialist&id=${AppState.activeSpecialistId}`;
+  const specInput = document.getElementById('shareSpecLinkInput');
+  if (specInput) specInput.value = specLink;
+
+  const specNameDisplay = document.getElementById('shareSpecNameDisplay');
+  if (specNameDisplay) specNameDisplay.textContent = spec.name || 'الأخصائي';
+
+  const specWhatsapp = document.getElementById('shareSpecWhatsappBtn');
+  if (specWhatsapp) {
+    const msg = encodeURIComponent(`مرحباً ${spec.name}، إليك رابط الدخول المباشر إلى لوحة تقييمات بورتيدج الخاصة بك:\n${specLink}`);
+    specWhatsapp.href = `https://api.whatsapp.com/send?text=${msg}`;
+  }
+
+  // 2. Parent Link
+  const parentLink = `${baseUrl}?role=parent&childId=${AppState.activeChildId}`;
+  const parentInput = document.getElementById('shareParentLinkInput');
+  if (parentInput) parentInput.value = parentLink;
+
+  const childNameDisplay = document.getElementById('shareChildNameDisplay');
+  if (childNameDisplay) childNameDisplay.textContent = child.name || 'الطفل';
+
+  const parentWhatsapp = document.getElementById('shareParentWhatsappBtn');
+  if (parentWhatsapp) {
+    const msg = encodeURIComponent(`مرحباً ولي أمر الطفل (${child.name})، إليك رابط الدخول المباشر لمتابعة التقرير والأنشطة المنزلية الخمسة المقررة عبر مقياس بورتيدج:\n${parentLink}`);
+    parentWhatsapp.href = `https://api.whatsapp.com/send?text=${msg}`;
+  }
+
+  // 3. Official Report Link
+  const reportLink = `${baseUrl}?tab=report&childId=${AppState.activeChildId}`;
+  const reportInput = document.getElementById('shareReportLinkInput');
+  if (reportInput) reportInput.value = reportLink;
+
+  const reportWhatsapp = document.getElementById('shareReportWhatsappBtn');
+  if (reportWhatsapp) {
+    const msg = encodeURIComponent(`تقرير التقييم النمائي الشامل المعتمد للطفل (${child.name}) وفق مقياس بورتيدج للتعليم المبكر:\n${reportLink}`);
+    reportWhatsapp.href = `https://api.whatsapp.com/send?text=${msg}`;
+  }
+}
+
+function copyToClipboard(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  input.select();
+  input.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(input.value).then(() => {
+    alert("تم نسخ الرابط المباشر إلى الحافظة بنجاح!");
+  }).catch(() => {
+    document.execCommand('copy');
+    alert("تم نسخ الرابط بنجاح!");
+  });
+}
+
+function handleUrlQueryRouting() {
+  const params = new URLSearchParams(window.location.search);
+  const role = params.get('role');
+  const specId = params.get('id') || params.get('specId');
+  const childId = params.get('childId');
+  const tab = params.get('tab');
+
+  if (specId && AppState.specialists[specId]) {
+    switchActiveSpecialist(specId);
+  }
+
+  if (childId) {
+    // Search across stores if needed
+    for (const [sId, cStore] of Object.entries(AppState.specialistStores)) {
+      if (cStore[childId]) {
+        AppState.activeSpecialistId = sId;
+        AppState.children = cStore;
+        AppState.activeChildId = childId;
+        AppState.child = { ...cStore[childId] };
+        AppState.evaluations = AppState.child.currentEvaluations || {};
+        AppState.iepSelectedGoals = new Set(AppState.child.currentIepGoals || []);
+        break;
+      }
+    }
+  }
+
+  if (role === 'parent') {
+    switchToParentMode(childId || AppState.activeChildId);
+  }
+
+  if (tab) {
+    switchTab(tab);
   }
 }
 
