@@ -1,12 +1,36 @@
 /**
  * Portage Assessment & IEP Application Logic
  * Portage Early Education System (FTDA Accredited)
- * Includes Multi-Child Profiles, Historical Progress Tracking, and Per-Skill Administration Guides
+ * Includes Multi-Specialist Accounts, Isolated Child Databases, Historical Progress Tracking, and Per-Skill Administration Guides
  */
 
-// Application State
+// Application State with Multi-Specialist Architecture
 const AppState = {
-  // Collection of child profiles
+  // Collection of Specialist Accounts
+  specialists: {
+    "spec_1": {
+      id: "spec_1",
+      name: "أ. منى زكي",
+      title: "أخصائية تربية خاصة وتعديل سلوك",
+      center: "مركز التنمية الشاملة للطفل",
+      phone: "01012345678",
+      createdAt: "2025-01-10"
+    },
+    "spec_2": {
+      id: "spec_2",
+      name: "د. خالد النجار",
+      title: "استشاري أمراض التخاطب والتأهيل النمائي",
+      center: "عيادة الأمل للتأهيل التخصصي",
+      phone: "01198765432",
+      createdAt: "2025-02-15"
+    }
+  },
+  activeSpecialistId: "spec_1",
+
+  // Specialist-specific Child Databases: Map of specialistId -> { childId -> childObject }
+  specialistStores: {},
+
+  // Current Active Specialist's Children Collection
   children: {},
   activeChildId: "demo_child_1",
   
@@ -25,11 +49,10 @@ const AppState = {
   },
   
   currentDomainId: "social",
-  currentAgeFilter: "auto_child_age", // default to child's age bracket
+  currentAgeFilter: "auto_child_age",
   autoFilterByAge: true,
   
   // Map of skillKey -> status ('acquired', 'emerging', 'missing')
-  // skillKey format: `${domainId}_${ageIndex}_${skillId}`
   evaluations: {},
   iepSelectedGoals: new Set(),
   theme: localStorage.getItem('portage_theme') || 'light'
@@ -54,7 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   loadSavedState();
   initEventListeners();
+  renderSpecialistSelectDropdown();
+  renderSpecialistSummaryCard();
   renderChildSelectDropdown();
+  renderChildrenDirectoryTable();
   renderDomainButtons();
   renderAssessmentView();
   updateChronologicalAge();
@@ -93,6 +119,17 @@ function initEventListeners() {
     });
   });
 
+  // Active Specialist Select Change
+  document.getElementById('activeSpecialistSelect')?.addEventListener('change', (e) => {
+    switchActiveSpecialist(e.target.value);
+  });
+
+  // Specialist Modal Open Button
+  document.getElementById('btnOpenSpecialistModal')?.addEventListener('click', () => {
+    renderSpecialistModalList();
+    openModal('specialistModal');
+  });
+
   // Active Child Select Change
   document.getElementById('activeChildSelect')?.addEventListener('change', (e) => {
     switchActiveChild(e.target.value);
@@ -100,6 +137,9 @@ function initEventListeners() {
 
   // Add Child Modal Button
   document.getElementById('btnAddNewChildModal')?.addEventListener('click', () => {
+    const spec = AppState.specialists[AppState.activeSpecialistId];
+    const specInput = document.getElementById('newChildSpecialistInput');
+    if (specInput && spec) specInput.value = spec.name;
     openModal('newChildModal');
   });
 
@@ -121,6 +161,11 @@ function initEventListeners() {
   // Search skills input
   document.getElementById('searchSkillInput')?.addEventListener('input', (e) => {
     filterSkills(e.target.value);
+  });
+
+  // Search children directory input
+  document.getElementById('searchChildrenDirectoryInput')?.addEventListener('input', (e) => {
+    renderChildrenDirectoryTable(e.target.value);
   });
 
   // History / Timeline Session Save
@@ -156,7 +201,10 @@ function switchTab(tabId) {
     view.classList.toggle('active', view.id === `tab-${tabId}`);
   });
 
-  if (tabId === 'results') {
+  if (tabId === 'intake') {
+    renderChildrenDirectoryTable();
+    renderSpecialistSummaryCard();
+  } else if (tabId === 'results') {
     calculateAllResults();
     setTimeout(renderCharts, 100);
   } else if (tabId === 'history') {
@@ -168,14 +216,215 @@ function switchTab(tabId) {
   }
 }
 
-// Child Profiles & Account Management
+// ==========================================================
+// SPECIALISTS MANAGEMENT & ISOLATED DATABASE ENGINES
+// ==========================================================
+
+function renderSpecialistSelectDropdown() {
+  const select = document.getElementById('activeSpecialistSelect');
+  if (!select) return;
+
+  select.innerHTML = Object.values(AppState.specialists).map(spec => `
+    <option value="${spec.id}" ${spec.id === AppState.activeSpecialistId ? 'selected' : ''}>
+      ${spec.name} (${spec.title.split(' ')[0]})
+    </option>
+  `).join('');
+}
+
+function renderSpecialistSummaryCard() {
+  const spec = AppState.specialists[AppState.activeSpecialistId];
+  if (!spec) return;
+
+  const nameEl = document.getElementById('currentSpecialistNameDisplay');
+  if (nameEl) nameEl.textContent = spec.name;
+
+  const titleBadge = document.getElementById('currentSpecialistTitleBadge');
+  if (titleBadge) titleBadge.textContent = spec.title;
+
+  const centerEl = document.getElementById('currentSpecialistCenterDisplay');
+  if (centerEl) centerEl.textContent = `${spec.center || 'عيادة خاصة'} | قاعدة البيانات المستقلة`;
+
+  const totalBadge = document.getElementById('specialistTotalChildrenBadge');
+  const count = Object.keys(AppState.children || {}).length;
+  if (totalBadge) totalBadge.innerHTML = `<i class="fas fa-children"></i> <strong>${count}</strong> أطفال مسجلين`;
+}
+
+function renderSpecialistModalList() {
+  const container = document.getElementById('specialistsListModalContainer');
+  if (!container) return;
+
+  container.innerHTML = Object.values(AppState.specialists).map(spec => {
+    const isActive = spec.id === AppState.activeSpecialistId;
+    const childCount = AppState.specialistStores[spec.id] ? Object.keys(AppState.specialistStores[spec.id]).length : 0;
+
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:${isActive ? 'var(--primary-light)' : 'var(--bg-elevated)'}; border:1px solid ${isActive ? 'var(--primary)' : 'var(--border-color)'}; padding:0.75rem 1rem; border-radius:var(--radius-md);">
+        <div>
+          <div style="font-weight:800; color:var(--text-main); font-size:0.95rem;">
+            ${spec.name} ${isActive ? '<span class="badge badge-ftda" style="font-size:0.7rem; margin-right:0.4rem;">الحساب النشط</span>' : ''}
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.2rem;">
+            ${spec.title} | ${spec.center || ''} (${childCount} أطفال)
+          </div>
+        </div>
+        <div style="display:flex; gap:0.4rem;">
+          ${!isActive ? `
+            <button class="btn btn-primary btn-xs" onclick="switchActiveSpecialist('${spec.id}'); closeModal('specialistModal');">
+              <i class="fas fa-check"></i> تفعيل الحساب
+            </button>
+            <button class="btn btn-outline btn-xs" style="color:var(--danger);" onclick="deleteSpecialistAccount('${spec.id}')" title="حذف حساب الأخصائي">
+              <i class="fas fa-trash"></i>
+            </button>
+          ` : `
+            <span style="font-size:0.8rem; color:var(--primary); font-weight:700;">قيد العمل</span>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function handleCreateNewSpecialistSubmit() {
+  const name = document.getElementById('newSpecNameInput')?.value.trim();
+  const title = document.getElementById('newSpecTitleInput')?.value.trim();
+  const center = document.getElementById('newSpecCenterInput')?.value.trim() || "عيادة خاصة";
+  const phone = document.getElementById('newSpecPhoneInput')?.value.trim() || "";
+
+  if (!name || !title) {
+    alert("يرجى إدخال اسم الأخصائي والمسمى الوظيفي");
+    return;
+  }
+
+  const newId = "spec_" + Date.now();
+  const newSpec = {
+    id: newId,
+    name: name,
+    title: title,
+    center: center,
+    phone: phone,
+    createdAt: new Date().toISOString().split('T')[0]
+  };
+
+  AppState.specialists[newId] = newSpec;
+  AppState.specialistStores[newId] = {};
+
+  document.getElementById('createSpecialistForm')?.reset();
+  closeModal('specialistModal');
+
+  switchActiveSpecialist(newId);
+  alert(`تم إنشاء حساب الأخصائي (${name}) بنجاح مع قاعدة بيانات أطفال مستقلة!`);
+}
+
+function deleteSpecialistAccount(specId) {
+  if (Object.keys(AppState.specialists).length <= 1) {
+    alert("لا يمكن حذف الأخصائي الوحيد المتبقي في النظام.");
+    return;
+  }
+
+  const spec = AppState.specialists[specId];
+  if (!confirm(`هل أنت متأكد من حذف حساب الأخصائي (${spec?.name}) وكافة ملفات الأطفال التابعة له؟`)) {
+    return;
+  }
+
+  delete AppState.specialists[specId];
+  delete AppState.specialistStores[specId];
+
+  saveState();
+  renderSpecialistModalList();
+  renderSpecialistSelectDropdown();
+}
+
+function switchActiveSpecialist(specId) {
+  if (!AppState.specialists[specId]) return;
+
+  // 1. Save current specialist children store first
+  saveCurrentSpecialistStore();
+
+  // 2. Switch Active Specialist
+  AppState.activeSpecialistId = specId;
+  const spec = AppState.specialists[specId];
+
+  // 3. Load or Initialize this specialist's children database
+  if (!AppState.specialistStores[specId] || Object.keys(AppState.specialistStores[specId]).length === 0) {
+    const defaultChildId = `child_${specId}_1`;
+    const defaultChild = {
+      id: defaultChildId,
+      name: "طفل جديد (" + spec.name + ")",
+      dob: "2023-01-01",
+      evalDate: new Date().toISOString().split('T')[0],
+      gender: "male",
+      specialist: spec.name,
+      notes: "",
+      chronologicalAgeMonths: 0,
+      chronologicalAgeFormatted: "",
+      sessions: [],
+      currentEvaluations: {},
+      currentIepGoals: []
+    };
+    AppState.specialistStores[specId] = { [defaultChildId]: defaultChild };
+  }
+
+  AppState.children = AppState.specialistStores[specId];
+  const firstChildId = Object.keys(AppState.children)[0];
+  AppState.activeChildId = firstChildId;
+  AppState.child = { ...AppState.children[firstChildId] };
+  AppState.evaluations = AppState.child.currentEvaluations || {};
+  AppState.iepSelectedGoals = new Set(AppState.child.currentIepGoals || []);
+
+  // 4. Update Form Inputs
+  document.getElementById('childName').value = AppState.child.name || "";
+  document.getElementById('childDob').value = AppState.child.dob || "";
+  document.getElementById('evalDate').value = AppState.child.evalDate || new Date().toISOString().split('T')[0];
+  document.getElementById('childGender').value = AppState.child.gender || "male";
+  document.getElementById('specialistName').value = spec.name;
+  document.getElementById('evalNotes').value = AppState.child.notes || "";
+
+  // 5. Refresh UI
+  updateChronologicalAge();
+  renderSpecialistSelectDropdown();
+  renderSpecialistSummaryCard();
+  renderChildSelectDropdown();
+  renderChildrenDirectoryTable();
+  renderDomainButtons();
+  renderAssessmentView();
+  calculateAllResults();
+  saveState();
+}
+
+function saveCurrentSpecialistStore() {
+  if (!AppState.activeSpecialistId) return;
+  saveCurrentChildToMap();
+  AppState.specialistStores[AppState.activeSpecialistId] = { ...AppState.children };
+}
+
+// ==========================================================
+// CHILD PROFILES & DATABASE DIRECTORY MANAGEMENT
+// ==========================================================
+
 function renderChildSelectDropdown() {
   const select = document.getElementById('activeChildSelect');
   if (!select) return;
 
-  // If no children in state, initialize with default active child
+  // If no children in state, initialize with default child
   if (Object.keys(AppState.children).length === 0) {
-    AppState.children[AppState.child.id] = { ...AppState.child };
+    const spec = AppState.specialists[AppState.activeSpecialistId];
+    const newId = "child_" + Date.now();
+    AppState.children[newId] = {
+      id: newId,
+      name: "طفل جديد",
+      dob: "2023-01-01",
+      evalDate: new Date().toISOString().split('T')[0],
+      gender: "male",
+      specialist: spec?.name || "",
+      notes: "",
+      chronologicalAgeMonths: 0,
+      chronologicalAgeFormatted: "",
+      sessions: [],
+      currentEvaluations: {},
+      currentIepGoals: []
+    };
+    AppState.activeChildId = newId;
+    AppState.child = { ...AppState.children[newId] };
   }
 
   select.innerHTML = Object.values(AppState.children).map(c => `
@@ -183,6 +432,64 @@ function renderChildSelectDropdown() {
       ${c.name || 'طفل بدون اسم'}
     </option>
   `).join('');
+}
+
+function renderChildrenDirectoryTable(searchQuery = '') {
+  const tbody = document.getElementById('specialistChildrenTableBody');
+  if (!tbody) return;
+
+  const query = searchQuery.trim().toLowerCase();
+  const childrenList = Object.values(AppState.children || {}).filter(c => {
+    return !query || (c.name && c.name.toLowerCase().includes(query)) || (c.specialist && c.specialist.toLowerCase().includes(query));
+  });
+
+  if (childrenList.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">
+          لا توجد ملفات أطفال مطابقة في قاعدة بيانات هذا الأخصائي. اضغط على زر "طفل جديد" لإنشاء ملف.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = childrenList.map(c => {
+    const isCurrent = c.id === AppState.activeChildId;
+    const sessCount = (c.sessions || []).length;
+    const lastSession = sessCount > 0 ? c.sessions[sessCount - 1] : null;
+    const dqText = lastSession ? `${lastSession.dq}%` : (isCurrent ? `${calculateAllResults().overallDevelopmentalQuotient}%` : '—');
+
+    return `
+      <tr style="${isCurrent ? 'background:rgba(79, 70, 229, 0.05); font-weight:700;' : ''}">
+        <td>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <i class="fas fa-${c.gender === 'female' ? 'venus' : 'mars'}" style="color:${c.gender === 'female' ? 'var(--domain-infant)' : 'var(--domain-social)'};"></i>
+            <strong>${c.name || 'طفل بدون اسم'}</strong>
+            ${isCurrent ? '<span class="badge badge-ftda" style="font-size:0.68rem; padding:0.1rem 0.4rem;">المحدد حالياً</span>' : ''}
+          </div>
+        </td>
+        <td>${c.dob || '—'}</td>
+        <td>${c.chronologicalAgeMonths ? c.chronologicalAgeMonths + ' شهر' : '—'}</td>
+        <td><span class="badge badge-info">${dqText}</span></td>
+        <td><strong>${sessCount}</strong> جلسات</td>
+        <td>${c.evalDate || '—'}</td>
+        <td>
+          <div style="display:flex; gap:0.35rem;">
+            <button class="btn btn-xs ${isCurrent ? 'btn-primary' : 'btn-outline'}" onclick="switchActiveChild('${c.id}'); switchTab('assessment');" title="تقييم مهارات هذا الطفل">
+              <i class="fas fa-tasks"></i> تقييم
+            </button>
+            <button class="btn btn-xs btn-outline" onclick="switchActiveChild('${c.id}'); switchTab('report');" title="عرض التقرير الرسمي">
+              <i class="fas fa-file-alt"></i> التقرير
+            </button>
+            <button class="btn btn-xs btn-outline" style="color:var(--danger);" onclick="deleteChildProfile('${c.id}')" title="حذف ملف الطفل">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function switchActiveChild(childId) {
@@ -204,11 +511,12 @@ function switchActiveChild(childId) {
   document.getElementById('childDob').value = AppState.child.dob || "";
   document.getElementById('evalDate').value = AppState.child.evalDate || new Date().toISOString().split('T')[0];
   document.getElementById('childGender').value = AppState.child.gender || "male";
-  document.getElementById('specialistName').value = AppState.child.specialist || "";
+  document.getElementById('specialistName').value = AppState.specialists[AppState.activeSpecialistId]?.name || AppState.child.specialist || "";
   document.getElementById('evalNotes').value = AppState.child.notes || "";
 
   updateChronologicalAge();
   renderChildSelectDropdown();
+  renderChildrenDirectoryTable();
   renderDomainButtons();
   renderAssessmentView();
   calculateAllResults();
@@ -219,7 +527,8 @@ function handleCreateNewChildSubmit() {
   const name = document.getElementById('newChildNameInput')?.value.trim();
   const dob = document.getElementById('newChildDobInput')?.value;
   const gender = document.getElementById('newChildGenderInput')?.value || "male";
-  const specialist = document.getElementById('newChildSpecialistInput')?.value.trim() || "";
+  const spec = AppState.specialists[AppState.activeSpecialistId];
+  const specialist = document.getElementById('newChildSpecialistInput')?.value.trim() || spec?.name || "";
 
   if (!name || !dob) {
     alert("يرجى إدخال اسم الطفل وتاريخ الميلاد");
@@ -243,11 +552,32 @@ function handleCreateNewChildSubmit() {
   };
 
   AppState.children[newId] = newChildObj;
+  saveCurrentSpecialistStore();
   closeModal('newChildModal');
   document.getElementById('createNewChildForm')?.reset();
   
   switchActiveChild(newId);
   switchTab('intake');
+  alert(`تم إنشاء ملف الطفل (${name}) وإضافته بنجاح لقاعدة بيانات (${spec?.name})!`);
+}
+
+function deleteChildProfile(childId) {
+  if (Object.keys(AppState.children).length <= 1) {
+    alert("يجب أن يحتوي حساب الأخصائي على ملف طفل واحد على الأقل.");
+    return;
+  }
+
+  const child = AppState.children[childId];
+  if (!confirm(`هل أنت متأكد من حذف ملف الطفل (${child?.name || 'المحدد'}) نهائياً؟`)) {
+    return;
+  }
+
+  delete AppState.children[childId];
+  saveCurrentSpecialistStore();
+  saveState();
+
+  const remainingIds = Object.keys(AppState.children);
+  switchActiveChild(remainingIds[0]);
 }
 
 function saveCurrentChildToMap() {
@@ -268,8 +598,10 @@ function handleChildInfoChange() {
 
   updateChronologicalAge();
   saveCurrentChildToMap();
+  saveCurrentSpecialistStore();
   saveState();
   renderChildSelectDropdown();
+  renderChildrenDirectoryTable();
   updateReportHeader();
 }
 
@@ -1477,59 +1809,116 @@ function renderOfficialReport() {
   container.innerHTML = tableHtml + domainDeficitAnalysisHtml + detailedInterventionHtml + recommendationsHtml;
 }
 
-// State Persistence (Local Storage)
+// State Persistence (Local Storage - Multi-Specialist Architecture)
 function saveState() {
+  saveCurrentSpecialistStore();
   const payload = {
-    children: AppState.children,
-    activeChildId: AppState.activeChildId,
-    child: AppState.child,
-    evaluations: AppState.evaluations,
-    iepSelectedGoals: Array.from(AppState.iepSelectedGoals)
+    version: "3.0",
+    specialists: AppState.specialists,
+    activeSpecialistId: AppState.activeSpecialistId,
+    specialistStores: AppState.specialistStores,
+    activeChildId: AppState.activeChildId
   };
-  localStorage.setItem('portage_assessment_state_v2', JSON.stringify(payload));
+  localStorage.setItem('portage_multi_specialists_v3', JSON.stringify(payload));
 }
 
 function loadSavedState() {
-  const raw = localStorage.getItem('portage_assessment_state_v2') || localStorage.getItem('portage_assessment_state');
-  if (!raw) return;
+  // Check v3 multi-specialist storage first
+  const rawV3 = localStorage.getItem('portage_multi_specialists_v3');
+  if (rawV3) {
+    try {
+      const data = JSON.parse(rawV3);
+      if (data.specialists && Object.keys(data.specialists).length > 0) {
+        AppState.specialists = data.specialists;
+      }
+      if (data.specialistStores) {
+        AppState.specialistStores = data.specialistStores;
+      }
+      if (data.activeSpecialistId && AppState.specialists[data.activeSpecialistId]) {
+        AppState.activeSpecialistId = data.activeSpecialistId;
+      } else {
+        AppState.activeSpecialistId = Object.keys(AppState.specialists)[0] || "spec_1";
+      }
 
-  try {
-    const data = JSON.parse(raw);
-    if (data.children) AppState.children = data.children;
-    if (data.activeChildId && AppState.children[data.activeChildId]) {
-      AppState.activeChildId = data.activeChildId;
-      AppState.child = { ...AppState.children[data.activeChildId] };
-    } else if (data.child) {
-      AppState.child = { ...AppState.child, ...data.child };
-      AppState.children[AppState.child.id || "child_default"] = { ...AppState.child };
-      AppState.activeChildId = AppState.child.id || "child_default";
+      // Load active specialist's children database
+      AppState.children = AppState.specialistStores[AppState.activeSpecialistId] || {};
+      
+      const childKeys = Object.keys(AppState.children);
+      if (data.activeChildId && AppState.children[data.activeChildId]) {
+        AppState.activeChildId = data.activeChildId;
+      } else if (childKeys.length > 0) {
+        AppState.activeChildId = childKeys[0];
+      }
+
+      if (AppState.activeChildId && AppState.children[AppState.activeChildId]) {
+        AppState.child = { ...AppState.children[AppState.activeChildId] };
+        AppState.evaluations = AppState.child.currentEvaluations || {};
+        AppState.iepSelectedGoals = new Set(AppState.child.currentIepGoals || []);
+      }
+
+      // Sync form fields
+      document.getElementById('childName').value = AppState.child.name || "";
+      document.getElementById('childDob').value = AppState.child.dob || "";
+      document.getElementById('evalDate').value = AppState.child.evalDate || new Date().toISOString().split('T')[0];
+      document.getElementById('childGender').value = AppState.child.gender || "male";
+      document.getElementById('specialistName').value = AppState.specialists[AppState.activeSpecialistId]?.name || AppState.child.specialist || "";
+      document.getElementById('evalNotes').value = AppState.child.notes || "";
+      return;
+    } catch (e) {
+      console.error("Error loading v3 state:", e);
     }
+  }
 
-    if (data.evaluations) AppState.evaluations = data.evaluations;
-    if (data.iepSelectedGoals) AppState.iepSelectedGoals = new Set(data.iepSelectedGoals);
+  // Fallback to legacy v2 or v1 storage if available
+  const rawLegacy = localStorage.getItem('portage_assessment_state_v2') || localStorage.getItem('portage_assessment_state');
+  if (rawLegacy) {
+    try {
+      const data = JSON.parse(rawLegacy);
+      const defaultSpecId = "spec_1";
+      AppState.specialistStores[defaultSpecId] = data.children || {};
+      
+      if (data.child) {
+        const cId = data.child.id || "legacy_child";
+        data.child.currentEvaluations = data.evaluations || {};
+        data.child.currentIepGoals = data.iepSelectedGoals || [];
+        AppState.specialistStores[defaultSpecId][cId] = data.child;
+        AppState.activeChildId = cId;
+        AppState.child = { ...data.child };
+      }
 
-    // Sync Form Inputs
-    document.getElementById('childName').value = AppState.child.name || "";
-    document.getElementById('childDob').value = AppState.child.dob || "";
-    document.getElementById('evalDate').value = AppState.child.evalDate || new Date().toISOString().split('T')[0];
-    document.getElementById('childGender').value = AppState.child.gender || "male";
-    document.getElementById('specialistName').value = AppState.child.specialist || "";
-    document.getElementById('evalNotes').value = AppState.child.notes || "";
-  } catch (e) {
-    console.error("Error loading saved state:", e);
+      AppState.children = AppState.specialistStores[defaultSpecId];
+      AppState.evaluations = data.evaluations || {};
+      if (data.iepSelectedGoals) AppState.iepSelectedGoals = new Set(data.iepSelectedGoals);
+
+      document.getElementById('childName').value = AppState.child.name || "";
+      document.getElementById('childDob').value = AppState.child.dob || "";
+      document.getElementById('evalDate').value = AppState.child.evalDate || new Date().toISOString().split('T')[0];
+      document.getElementById('childGender').value = AppState.child.gender || "male";
+      document.getElementById('specialistName').value = AppState.specialists[defaultSpecId]?.name || "";
+      document.getElementById('evalNotes').value = AppState.child.notes || "";
+    } catch (e) {
+      console.error("Error loading legacy state:", e);
+    }
   }
 }
 
-// Export JSON
+// Export Complete Database JSON
 function exportAssessmentJSON() {
+  saveCurrentSpecialistStore();
+  const currentSpec = AppState.specialists[AppState.activeSpecialistId] || {};
+
   const dataToExport = {
     meta: {
-      system: "Portage Assessment & Tracking Portal",
-      version: "2.0",
+      system: "Portage Early Education Assessment & IEP System",
+      version: "3.0 (Multi-Specialist & Isolated Child Databases)",
       exportDate: new Date().toISOString(),
-      accreditation: "مؤسسة أكاديمية التدريب والتنمية (FTDA) - إعداد: م. إيمان أبواليزيد"
+      accreditation: "مؤسسة أكاديمية التدريب والتنمية (FTDA) - إعداد: م. إيمان أبواليزيد",
+      specialist: currentSpec
     },
-    children: AppState.children,
+    activeSpecialistId: AppState.activeSpecialistId,
+    specialists: AppState.specialists,
+    specialistStores: AppState.specialistStores,
+    currentSpecialistChildren: AppState.children,
     activeChild: AppState.child,
     evaluations: AppState.evaluations,
     results: calculateAllResults(),
@@ -1540,12 +1929,13 @@ function exportAssessmentJSON() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `سجل_بورتيدج_الشامل_${AppState.child.name || 'طفل'}_${AppState.child.evalDate}.json`;
+  const fileName = `قاعدة_بيانات_بورتيدج_${(currentSpec.name || 'أخصائي').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+  a.download = fileName;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-// Import JSON
+// Import Complete or Single-Child Database JSON
 function importAssessmentJSON(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -1554,12 +1944,27 @@ function importAssessmentJSON(event) {
   reader.onload = (e) => {
     try {
       const data = JSON.parse(e.target.result);
-      if (data.children) AppState.children = data.children;
+
+      if (data.specialists && data.specialistStores) {
+        // Full v3 backup import
+        AppState.specialists = { ...AppState.specialists, ...data.specialists };
+        AppState.specialistStores = { ...AppState.specialistStores, ...data.specialistStores };
+        if (data.activeSpecialistId && AppState.specialists[data.activeSpecialistId]) {
+          AppState.activeSpecialistId = data.activeSpecialistId;
+        }
+        AppState.children = AppState.specialistStores[AppState.activeSpecialistId] || {};
+      } else if (data.children) {
+        // Import into current specialist database
+        AppState.children = { ...AppState.children, ...data.children };
+        AppState.specialistStores[AppState.activeSpecialistId] = { ...AppState.children };
+      }
+
       if (data.activeChild) {
         AppState.child = { ...AppState.child, ...data.activeChild };
-        AppState.activeChildId = data.activeChild.id || "imported_child";
+        AppState.activeChildId = data.activeChild.id || ("child_" + Date.now());
         AppState.children[AppState.activeChildId] = { ...AppState.child };
       }
+
       if (data.evaluations) AppState.evaluations = data.evaluations;
       if (data.iepGoals) AppState.iepSelectedGoals = new Set(data.iepGoals);
 
@@ -1567,16 +1972,19 @@ function importAssessmentJSON(event) {
       document.getElementById('childDob').value = AppState.child.dob || "";
       document.getElementById('evalDate').value = AppState.child.evalDate || "";
       document.getElementById('childGender').value = AppState.child.gender || "male";
-      document.getElementById('specialistName').value = AppState.child.specialist || "";
+      document.getElementById('specialistName').value = AppState.specialists[AppState.activeSpecialistId]?.name || AppState.child.specialist || "";
       document.getElementById('evalNotes').value = AppState.child.notes || "";
 
       updateChronologicalAge();
       saveState();
+      renderSpecialistSelectDropdown();
+      renderSpecialistSummaryCard();
       renderChildSelectDropdown();
+      renderChildrenDirectoryTable();
       renderDomainButtons();
       renderAssessmentView();
       calculateAllResults();
-      alert("تم استيراد ملف التقييم بنجاح!");
+      alert("تم استيراد وتحديث قاعدة البيانات بنجاح!");
     } catch (err) {
       alert("حدث خطأ أثناء قراءة الملف. يرجى التأكد من صحة ملف JSON.");
     }
@@ -1584,72 +1992,159 @@ function importAssessmentJSON(event) {
   reader.readAsText(file);
 }
 
-// Load Demo Data for Quick Testing
+// Load Rich Multi-Specialist Demo Data for Instant Exploration
 function loadDemoData() {
-  const demoChildId = "demo_child_1";
-  const demoChild = {
-    id: demoChildId,
-    name: "يوسف أحمد السعيد",
-    dob: "2023-03-15",
-    evalDate: new Date().toISOString().split('T')[0],
-    gender: "male",
-    specialist: "أ. منى زكي (أخصائية تربية خاصة)",
-    notes: "يعاني الطفل من تأخر بسيط في النمو اللغوي والاندماج الاجتماعي مع مهارات حركية جيدة.",
-    chronologicalAgeMonths: 0,
-    chronologicalAgeFormatted: "",
-    sessions: [
-      {
-        sessionId: "sess_baseline_1",
-        sessionNumber: 1,
-        date: "2025-09-15",
-        chronologicalAgeMonths: 30.0,
-        overallDevAgeMonths: 18.5,
-        dq: 62,
-        totalAcquired: 145,
-        totalSkillsCount: 570,
-        evaluations: {}
-      },
-      {
-        sessionId: "sess_midterm_2",
-        sessionNumber: 2,
-        date: "2026-03-15",
-        chronologicalAgeMonths: 36.0,
-        overallDevAgeMonths: 26.2,
-        dq: 73,
-        totalAcquired: 230,
-        totalSkillsCount: 570,
-        evaluations: {}
-      }
-    ]
+  // Specialist 1: أ. منى زكي
+  const spec1Children = {
+    "child_youssef": {
+      id: "child_youssef",
+      name: "يوسف أحمد السعيد",
+      dob: "2023-03-15",
+      evalDate: new Date().toISOString().split('T')[0],
+      gender: "male",
+      specialist: "أ. منى زكي",
+      notes: "يعاني من تأخر بسيط في النمو اللغوي والاندماج الاجتماعي مع استجابة ممتازة للتعزيز.",
+      chronologicalAgeMonths: 36,
+      chronologicalAgeFormatted: "3 سنوات",
+      currentEvaluations: {},
+      currentIepGoals: ["social_1_15", "language_2_10", "cognitive_2_5"],
+      sessions: [
+        {
+          sessionId: "sess_1",
+          sessionNumber: 1,
+          date: "2025-09-15",
+          chronologicalAgeMonths: 30,
+          overallDevAgeMonths: 18.5,
+          dq: 62,
+          totalAcquired: 145,
+          totalSkillsCount: 570,
+          evaluations: {}
+        },
+        {
+          sessionId: "sess_2",
+          sessionNumber: 2,
+          date: "2026-03-15",
+          chronologicalAgeMonths: 36,
+          overallDevAgeMonths: 26.2,
+          dq: 73,
+          totalAcquired: 230,
+          totalSkillsCount: 570,
+          evaluations: {}
+        }
+      ]
+    },
+    "child_mariam": {
+      id: "child_mariam",
+      name: "مريم محمود الشريف",
+      dob: "2022-08-10",
+      evalDate: new Date().toISOString().split('T')[0],
+      gender: "female",
+      specialist: "أ. منى زكي",
+      notes: "تقييم متابعة دوري لتنمية المهارات المعرفية والاستقلالية ورعاية الذات.",
+      chronologicalAgeMonths: 43,
+      chronologicalAgeFormatted: "3 سنوات و 7 شهور",
+      currentEvaluations: {},
+      currentIepGoals: ["self_help_3_8", "motor_3_12"],
+      sessions: []
+    }
   };
 
-  AppState.children[demoChildId] = demoChild;
-  switchActiveChild(demoChildId);
-
-  // Populate realistic demo responses for 3-year old child
-  AppState.evaluations = {};
+  // Populate realistic evaluations for Youssef
   PORTAGE_DATA.domains.forEach(domain => {
     domain.ageGroups.forEach((group, gIdx) => {
       group.skills.forEach(skill => {
         const key = `${domain.id}_${gIdx}_${skill.id}`;
         if (gIdx === 0) {
-          AppState.evaluations[key] = 'acquired';
+          spec1Children["child_youssef"].currentEvaluations[key] = 'acquired';
         } else if (gIdx === 1) {
-          AppState.evaluations[key] = Math.random() > 0.15 ? 'acquired' : 'missing';
+          spec1Children["child_youssef"].currentEvaluations[key] = Math.random() > 0.15 ? 'acquired' : 'missing';
         } else if (gIdx === 2) {
           const r = Math.random();
-          AppState.evaluations[key] = r > 0.5 ? 'acquired' : (r > 0.25 ? 'emerging' : 'missing');
+          spec1Children["child_youssef"].currentEvaluations[key] = r > 0.5 ? 'acquired' : (r > 0.25 ? 'emerging' : 'missing');
         } else {
-          AppState.evaluations[key] = 'missing';
+          spec1Children["child_youssef"].currentEvaluations[key] = 'missing';
         }
       });
     });
   });
 
-  saveCurrentChildToMap();
+  // Specialist 2: د. خالد النجار
+  const spec2Children = {
+    "child_omar": {
+      id: "child_omar",
+      name: "عمر طارق المهدي",
+      dob: "2021-11-20",
+      evalDate: new Date().toISOString().split('T')[0],
+      gender: "male",
+      specialist: "د. خالد النجار",
+      notes: "برنامج تأهيلي مكثف لعلاج عسر النطق وتطوير المفردات التعبيرية.",
+      chronologicalAgeMonths: 52,
+      chronologicalAgeFormatted: "4 سنوات و 4 شهور",
+      currentEvaluations: {},
+      currentIepGoals: ["language_3_18", "language_4_5"],
+      sessions: [
+        {
+          sessionId: "sess_omar_1",
+          sessionNumber: 1,
+          date: "2026-01-10",
+          chronologicalAgeMonths: 49,
+          overallDevAgeMonths: 35.0,
+          dq: 71,
+          totalAcquired: 310,
+          totalSkillsCount: 570,
+          evaluations: {}
+        }
+      ]
+    }
+  };
+
+  // Populate evaluations for Omar
+  PORTAGE_DATA.domains.forEach(domain => {
+    domain.ageGroups.forEach((group, gIdx) => {
+      group.skills.forEach(skill => {
+        const key = `${domain.id}_${gIdx}_${skill.id}`;
+        if (gIdx <= 1) {
+          spec2Children["child_omar"].currentEvaluations[key] = 'acquired';
+        } else if (gIdx === 2) {
+          spec2Children["child_omar"].currentEvaluations[key] = Math.random() > 0.2 ? 'acquired' : 'missing';
+        } else if (gIdx === 3) {
+          const r = Math.random();
+          spec2Children["child_omar"].currentEvaluations[key] = r > 0.4 ? 'acquired' : (r > 0.2 ? 'emerging' : 'missing');
+        } else {
+          spec2Children["child_omar"].currentEvaluations[key] = 'missing';
+        }
+      });
+    });
+  });
+
+  AppState.specialistStores = {
+    "spec_1": spec1Children,
+    "spec_2": spec2Children
+  };
+
+  AppState.activeSpecialistId = "spec_1";
+  AppState.children = AppState.specialistStores["spec_1"];
+  AppState.activeChildId = "child_youssef";
+  AppState.child = { ...AppState.children["child_youssef"] };
+  AppState.evaluations = { ...AppState.child.currentEvaluations };
+  AppState.iepSelectedGoals = new Set(AppState.child.currentIepGoals);
+
+  // Sync inputs
+  document.getElementById('childName').value = AppState.child.name;
+  document.getElementById('childDob').value = AppState.child.dob;
+  document.getElementById('evalDate').value = AppState.child.evalDate;
+  document.getElementById('childGender').value = AppState.child.gender;
+  document.getElementById('specialistName').value = AppState.specialists["spec_1"].name;
+  document.getElementById('evalNotes').value = AppState.child.notes;
+
+  updateChronologicalAge();
   saveState();
+  renderSpecialistSelectDropdown();
+  renderSpecialistSummaryCard();
+  renderChildSelectDropdown();
+  renderChildrenDirectoryTable();
   renderDomainButtons();
   renderAssessmentView();
   calculateAllResults();
-  alert("تم تحميل بيانات تجريبية لطفل وجلسات متابعة سابقة بنجاح!");
+  alert("تم بنجاح تهيئة قاعدة بيانات متكاملة تتضمن حسابين لأخصائيين مستقلين و 3 ملفات أطفال مع سجلات تقييم تاريخية وخطط فردية!");
 }

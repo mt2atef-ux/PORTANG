@@ -36,25 +36,36 @@
         </div>
 
         <div class="nav-actions">
-          <!-- Child Profile Switcher -->
+          <!-- Specialist Profile Switcher -->
+          <div class="specialist-profile-select-wrapper">
+            <i class="fas fa-user-doctor" style="color:var(--primary); font-size:1.1rem;"></i>
+            <select id="activeSpecialistSelect" class="form-select specialist-quick-select" title="اختر حساب الأخصائي النشط">
+              <!-- Populated by JS -->
+            </select>
+            <button class="btn btn-outline btn-xs" id="btnOpenSpecialistModal" title="إدارة حسابات الأخصائيين">
+              <i class="fas fa-user-plus"></i> أخصائي
+            </button>
+          </div>
+
+          <!-- Child Profile Switcher (Linked to Specialist) -->
           <div class="child-profile-select-wrapper">
-            <i class="fas fa-user-circle" style="color:var(--primary); font-size:1.1rem;"></i>
+            <i class="fas fa-child" style="color:var(--primary); font-size:1.1rem;"></i>
             <select id="activeChildSelect" class="form-select child-quick-select" title="اختر ملف الطفل للمتابعة">
               <!-- Populated by JS -->
             </select>
-            <button class="btn btn-primary btn-xs" id="btnAddNewChildModal" title="إضافة ملف طفل جديد">
+            <button class="btn btn-primary btn-xs" id="btnAddNewChildModal" title="إضافة ملف طفل جديد للأخصائي">
               <i class="fas fa-plus"></i> طفل جديد
             </button>
           </div>
 
-          <button class="btn btn-secondary btn-xs" id="btnLoadDemoData" title="تحميل نموذج تجريبي">
+          <button class="btn btn-secondary btn-xs" id="btnLoadDemoData" title="تحميل نموذج تجريبي للأخصائي">
             <i class="fas fa-magic"></i> بيانات تجريبية
           </button>
-          <button class="btn btn-secondary btn-xs" id="btnImportJson" title="استيراد ملف تقييم">
+          <button class="btn btn-secondary btn-xs" id="btnImportJson" title="استيراد قاعدة بيانات / ملف تقييم">
             <i class="fas fa-file-import"></i> استيراد
           </button>
           <input type="file" id="importFileInput" accept=".json" style="display:none">
-          <button class="btn btn-secondary btn-xs" id="btnExportJson" title="تصدير ملف تقييم">
+          <button class="btn btn-secondary btn-xs" id="btnExportJson" title="تصدير قاعدة بيانات الأخصائي">
             <i class="fas fa-file-export"></i> تصدير JSON
           </button>
           <button class="btn btn-primary btn-xs" id="btnPrintReport">
@@ -106,13 +117,43 @@
         </button>
       </nav>
 
-      <!-- Tab 1: Child Intake Form -->
+      <!-- Tab 1: Specialist Dashboard & Child Intake -->
       <section class="tab-view active" id="tab-intake">
-        <div class="card">
+        <!-- Active Specialist Summary Banner -->
+        <div class="card" style="background:var(--bg-elevated); border-right:4px solid var(--primary); margin-bottom:1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <div class="brand-icon" style="width:42px; height:42px; font-size:1.2rem;">
+                <i class="fas fa-user-doctor"></i>
+              </div>
+              <div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <h3 id="currentSpecialistNameDisplay" style="font-size:1.15rem; margin:0;">أ. منى زكي</h3>
+                  <span id="currentSpecialistTitleBadge" class="badge badge-ftda" style="font-size:0.75rem;">أخصائية تربية خاصة</span>
+                </div>
+                <p id="currentSpecialistCenterDisplay" style="font-size:0.82rem; color:var(--text-muted); margin:0.2rem 0 0 0;">
+                  مركز التنمية الشاملة للطفل | قاعدة البيانات النشطة
+                </p>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+              <span class="badge badge-info" id="specialistTotalChildrenBadge">
+                <i class="fas fa-children"></i> <strong>0</strong> أطفال مسجلين
+              </span>
+              <button class="btn btn-outline btn-xs" onclick="openModal('specialistModal')">
+                <i class="fas fa-users-gear"></i> إدارة حسابات الأخصائيين
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Child Profile & Intake Form -->
+        <div class="card" style="margin-bottom:1.5rem;">
           <div class="card-header">
             <div class="card-title">
               <i class="fas fa-user-edit text-primary"></i>
-              <h3>البيانات الأولية للطفل وتاريخ التقييم</h3>
+              <h3>بيانات الطفل المختار وجلسة التقييم الحالية</h3>
             </div>
             <span class="badge badge-info">خطوة أساسية لحساب العمر الزمني</span>
           </div>
@@ -149,8 +190,8 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="specialistName">اسم الأخصائي / الفاحص</label>
-                <input type="text" id="specialistName" class="form-input" placeholder="مثال: أخصائي التربية الخاصة">
+                <label class="form-label" for="specialistName">اسم الأخصائي الفاحص</label>
+                <input type="text" id="specialistName" class="form-input" placeholder="اسم الأخصائي المسئول">
               </div>
 
               <div class="form-group full-width">
@@ -164,12 +205,47 @@
               <i class="fas fa-info-circle"></i> أدخل تاريخ الميلاد وتاريخ التقييم لحساب العمر الزمني بدقة.
             </div>
 
-            <div class="form-action-row">
+            <div class="form-action-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+              <button type="button" class="btn btn-secondary" onclick="openModal('newChildModal')">
+                <i class="fas fa-plus"></i> إضافة طفل جديد لحساب هذا الأخصائي
+              </button>
               <button type="submit" class="btn btn-primary">
                 الانتقال لتقييم مهارات البورتيدج <i class="fas fa-arrow-left"></i>
               </button>
             </div>
           </form>
+        </div>
+
+        <!-- Specialist's Registered Children Directory -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fas fa-folder-open text-primary"></i>
+              <h3>سجل وقاعدة بيانات أطفال الأخصائي الحالي</h3>
+            </div>
+            <div class="search-input-wrapper">
+              <input type="text" id="searchChildrenDirectoryInput" class="form-input" placeholder="بحث في ملفات أطفالك..." style="padding:0.4rem 0.75rem; font-size:0.85rem;">
+            </div>
+          </div>
+
+          <div class="calc-table-container">
+            <table class="calc-table">
+              <thead>
+                <tr>
+                  <th>اسم الطفل</th>
+                  <th>تاريخ الميلاد</th>
+                  <th>العمر الزمني</th>
+                  <th>آخر نسبة تطور (DQ)</th>
+                  <th>عدد الجلسات</th>
+                  <th>تاريخ آخر تقييم</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="specialistChildrenTableBody">
+                <!-- Populated dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -539,11 +615,69 @@
       </div>
     </div>
 
-    <!-- Modal 2: Create New Child Profile Modal -->
+    <!-- Modal 2: Specialist Accounts Management Modal -->
+    <div class="modal-backdrop" id="specialistModal">
+      <div class="modal-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1.25rem;">
+          <h3 style="font-size:1.15rem;"><i class="fas fa-users-gear text-primary"></i> إدارة حسابات الأخصائيين وقواعد البيانات</h3>
+          <button class="btn btn-icon btn-outline" onclick="closeModal('specialistModal')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Add New Specialist Form -->
+        <div style="background:var(--bg-elevated); padding:1rem; border-radius:var(--radius-md); margin-bottom:1.25rem; border:1px solid var(--border-color);">
+          <h4 style="font-size:0.95rem; font-weight:800; color:var(--primary); margin-bottom:0.75rem;">
+            <i class="fas fa-user-plus"></i> إنشاء حساب أخصائي جديد (قاعدة بيانات مستقلة)
+          </h4>
+          <form id="createSpecialistForm" onsubmit="event.preventDefault(); handleCreateNewSpecialistSubmit();">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem;">
+              <div class="form-group">
+                <label class="form-label" for="newSpecNameInput">اسم الأخصائي <span class="req">*</span></label>
+                <input type="text" id="newSpecNameInput" class="form-input" placeholder="مثال: د. خالد النجار" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="newSpecTitleInput">التخصص / المسمى الوظيفي <span class="req">*</span></label>
+                <input type="text" id="newSpecTitleInput" class="form-input" placeholder="مثال: استشاري أمراض تخاطب" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="newSpecCenterInput">المركز / العيادة</label>
+                <input type="text" id="newSpecCenterInput" class="form-input" placeholder="مثال: عيادة الأمل للتأهيل">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="newSpecPhoneInput">رقم الهاتف / البريد</label>
+                <input type="text" id="newSpecPhoneInput" class="form-input" placeholder="مثال: 010xxxxxxxx">
+              </div>
+            </div>
+            <div style="margin-top:0.75rem; text-align:left;">
+              <button type="submit" class="btn btn-primary btn-xs">
+                <i class="fas fa-check"></i> حفظ وإنشاء حساب الأخصائي
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Existing Specialists List -->
+        <div>
+          <h4 style="font-size:0.95rem; font-weight:800; margin-bottom:0.5rem;">
+            <i class="fas fa-list"></i> الأخصائيون المسجلون بالنظام:
+          </h4>
+          <div id="specialistsListModalContainer" style="display:flex; flex-direction:column; gap:0.5rem; max-height:260px; overflow-y:auto;">
+            <!-- Populated dynamically by JS -->
+          </div>
+        </div>
+
+        <div class="modal-footer-row" style="margin-top:1.25rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('specialistModal')">إغلاق</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 3: Create New Child Profile Modal -->
     <div class="modal-backdrop" id="newChildModal">
       <div class="modal-card modal-card-sm">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem; margin-bottom:1.25rem;">
-          <h3 style="font-size:1.15rem;"><i class="fas fa-user-plus text-primary"></i> إنشاء ملف طفل جديد</h3>
+          <h3 style="font-size:1.15rem;"><i class="fas fa-child text-primary"></i> إنشاء ملف طفل جديد</h3>
           <button class="btn btn-icon btn-outline" onclick="closeModal('newChildModal')">
             <i class="fas fa-times"></i>
           </button>
